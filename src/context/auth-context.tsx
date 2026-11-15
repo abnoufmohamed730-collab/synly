@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
+export type AppMode = "user" | "vendor";
+
 export interface User {
   id: string;
   email: string;
@@ -14,6 +16,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
@@ -34,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [mode, setMode] = useState<AppMode>("user");
 
   const login = useCallback(async (email: string, password: string) => {
     // Simulate API call
@@ -50,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         status: "online",
         verified: true,
       });
+      // Default post-login state is Regular User Mode
+      setMode("user");
     } else {
       throw new Error("Invalid credentials");
     }
@@ -69,10 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status: "online",
       verified: false,
     });
+    setMode("user");
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
+    setMode("user");
   }, []);
 
   const updateUser = useCallback((data: Partial<User>) => {
@@ -84,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        mode,
+        setMode,
         login,
         register,
         logout,

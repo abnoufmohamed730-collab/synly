@@ -35,6 +35,27 @@ export interface Mechanic {
   active: boolean;
 }
 
+export interface NearbyCenter {
+  id: string;
+  name: string;
+  type: string;
+  distance: string;
+  rating: number;
+  reviews: number;
+  openNow: boolean;
+  services: string[];
+  phone: string;
+}
+
+export interface UserRequest {
+  id: string;
+  service: string;
+  status: "pending" | "accepted" | "completed" | "cancelled";
+  center: string;
+  date: string;
+  price?: number;
+}
+
 export const mockRequests: ServiceRequest[] = [
   {
     id: "REQ-001",
@@ -266,6 +287,79 @@ export const mockMechanics: Mechanic[] = [
     phone: "+20 102 345 6789",
     email: "omar@autocare.com",
     active: false,
+  },
+];
+
+export const mockNearbyCenters: NearbyCenter[] = [
+  {
+    id: "C-001",
+    name: "AutoCare Pro Center",
+    type: "Mechanical Repair",
+    distance: "1.2 km",
+    rating: 4.8,
+    reviews: 124,
+    openNow: true,
+    services: ["Engine Repair", "Brakes", "Oil Change"],
+    phone: "+20 100 123 4567",
+  },
+  {
+    id: "C-002",
+    name: "Speedy Tires & Lube",
+    type: "Towing/Roadside Assistance",
+    distance: "2.5 km",
+    rating: 4.6,
+    reviews: 89,
+    openNow: true,
+    services: ["Tire Change", "Towing", "Battery"],
+    phone: "+20 101 234 5678",
+  },
+  {
+    id: "C-003",
+    name: "ElectroAuto Shop",
+    type: "Auto Electric",
+    distance: "3.1 km",
+    rating: 4.7,
+    reviews: 56,
+    openNow: false,
+    services: ["Wiring", "Battery", "Sensors"],
+    phone: "+20 102 345 6789",
+  },
+  {
+    id: "C-004",
+    name: "PartsHub Spare Parts",
+    type: "Spare Parts Shop",
+    distance: "4.0 km",
+    rating: 4.5,
+    reviews: 210,
+    openNow: true,
+    services: ["OEM Parts", "Accessories", "Delivery"],
+    phone: "+20 103 456 7890",
+  },
+];
+
+export const mockUserRequests: UserRequest[] = [
+  {
+    id: "U-001",
+    service: "Oil Change",
+    status: "completed",
+    center: "AutoCare Pro Center",
+    date: "2024-01-10",
+    price: 450,
+  },
+  {
+    id: "U-002",
+    service: "Battery Replacement",
+    status: "accepted",
+    center: "Speedy Tires & Lube",
+    date: "2024-01-14",
+    price: 900,
+  },
+  {
+    id: "U-003",
+    service: "Tire Change",
+    status: "pending",
+    center: "Speedy Tires & Lube",
+    date: "2024-01-15",
   },
 ];
 

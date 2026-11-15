@@ -11,445 +11,504 @@ import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Save, MapPin, Clock, Users, Plus, Pencil, Trash2, Phone, Mail, ShieldCheck } from "lucide-react";
+import { Save, MapPin, Clock, Users, Plus, Pencil, Trash2, Phone, Mail, ShieldCheck, Car, Home } from "lucide-react";
 import { toast } from "sonner";
 
 export function ProfilePage() {
-  const { user, updateUser } = useAuth();
-  const [mechanics, setMechanics] = useState<Mechanic[]>(mockMechanics);
-  const [radius, setRadius] = useState("10");
-  const [notifications, setNotifications] = useState(true);
-  const [mechanicDialog, setMechanicDialog] = useState(false);
-  const [editingMechanic, setEditingMechanic] = useState<Mechanic | null>(null);
-  const [mechanicForm, setMechanicForm] = useState({ name: "", specialization: "", phone: "", email: "" });
+  const { mode } = useAuth();
+  return mode === "vendor" ? <VendorProfile /> : <UserProfile />;
+}
 
-  const [businessForm, setBusinessForm] = useState({
+function UserProfile() {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    name: "Ahmed Mohamed",
+    phone: "+20 100 123 4567",
+    email: user?.email || "ahmed@email.com",
+    carModel: "Hyundai Elantra 2021",
+    plate: "ABC 1234",
+  });
+  const [radius, setRadius] = useState("15");
+  const [notifications, setNotifications] = useState(true);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
+        <p className="text-muted-foreground">Manage your personal info and vehicle</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Personal Info */}
+        <Card className="glass-card lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5 text-primary" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>Update your contact details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <Button
+              onClick={() => toast.success("Profile updated")}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Vehicle */}
+        <Card className="glass-card h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-primary" />
+              My Vehicle
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label>Car Model</Label>
+              <Input value={form.carModel} onChange={(e) => setForm({ ...form, carModel: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Plate Number</Label>
+              <Input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => toast.success("Vehicle updated")}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Vehicle
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Settings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>Alert Radius</CardTitle>
+            <CardDescription>Set the radius for nearby service alerts</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Distance Radius</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={radius}
+                  onChange={(e) => setRadius(e.target.value)}
+                  className="flex-1 accent-orange-500"
+                />
+                <span className="text-sm font-medium text-foreground w-16">{radius} km</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You'll receive alerts from centers within {radius} km.
+              </p>
+            </div>
+            <Button
+              onClick={() => toast.success("Alert radius updated")}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Radius
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>Manage your notification preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Push Notifications</p>
+                <p className="text-xs text-muted-foreground">Receive alerts for request updates</p>
+              </div>
+              <Switch checked={notifications} onCheckedChange={setNotifications} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Email Notifications</p>
+                <p className="text-xs text-muted-foreground">Get updates via email</p>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <Button
+              onClick={() => toast.success("Preferences saved")}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Preferences
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function VendorProfile() {
+  const { user, updateUser } = useAuth();
+  const [form, setForm] = useState({
     businessName: user?.businessName || "",
     serviceType: user?.serviceType || "",
     location: user?.location || "",
     operatingHours: user?.operatingHours || "",
-    description: "",
+    email: user?.email || "",
+    phone: "+20 100 123 4567",
+    about: "Full-service auto care center specializing in mechanical repair, electrical diagnostics, and preventive maintenance. Serving the community with certified technicians and genuine parts.",
   });
+  const [mechanics, setMechanics] = useState<Mechanic[]>(mockMechanics);
+  const [radius, setRadius] = useState("25");
+  const [notifications, setNotifications] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editMechanic, setEditMechanic] = useState<Mechanic | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newMechanic, setNewMechanic] = useState({ name: "", specialization: "", phone: "", email: "" });
 
-  const handleSaveBusiness = () => {
+  const handleSave = () => {
     updateUser({
-      businessName: businessForm.businessName,
-      serviceType: businessForm.serviceType,
-      location: businessForm.location,
-      operatingHours: businessForm.operatingHours,
+      businessName: form.businessName,
+      serviceType: form.serviceType,
+      location: form.location,
+      operatingHours: form.operatingHours,
+      email: form.email,
     });
-    toast.success("Business details updated");
+    toast.success("Profile updated successfully");
   };
 
-  const openAddMechanic = () => {
-    setEditingMechanic(null);
-    setMechanicForm({ name: "", specialization: "", phone: "", email: "" });
-    setMechanicDialog(true);
-  };
-
-  const openEditMechanic = (mechanic: Mechanic) => {
-    setEditingMechanic(mechanic);
-    setMechanicForm({
-      name: mechanic.name,
-      specialization: mechanic.specialization,
-      phone: mechanic.phone,
-      email: mechanic.email,
-    });
-    setMechanicDialog(true);
-  };
-
-  const handleSaveMechanic = () => {
-    if (!mechanicForm.name) {
-      toast.error("Please enter a name");
+  const handleAddMechanic = () => {
+    if (!newMechanic.name || !newMechanic.phone) {
+      toast.error("Name and phone are required");
       return;
     }
-    const base: Mechanic = {
-      id: editingMechanic?.id || `MEC-${Date.now()}`,
-      name: mechanicForm.name,
-      specialization: mechanicForm.specialization,
-      phone: mechanicForm.phone,
-      email: mechanicForm.email,
-      active: editingMechanic?.active ?? true,
+    const mechanic: Mechanic = {
+      id: `MEC-${String(mechanics.length + 1).padStart(3, "0")}`,
+      ...newMechanic,
+      active: true,
     };
-    setMechanics((prev) =>
-      editingMechanic
-        ? prev.map((m) => (m.id === editingMechanic.id ? base : m))
-        : [...prev, base]
-    );
-    toast.success(editingMechanic ? "Mechanic updated" : "Mechanic added");
-    setMechanicDialog(false);
+    setMechanics([...mechanics, mechanic]);
+    setNewMechanic({ name: "", specialization: "", phone: "", email: "" });
+    setAddOpen(false);
+    toast.success("Team member added");
+  };
+
+  const handleEditMechanic = (mechanic: Mechanic) => {
+    setEditMechanic(mechanic);
+    setEditOpen(true);
+  };
+
+  const handleUpdateMechanic = () => {
+    if (!editMechanic) return;
+    setMechanics(mechanics.map((m) => (m.id === editMechanic.id ? editMechanic : m)));
+    setEditOpen(false);
+    setEditMechanic(null);
+    toast.success("Team member updated");
   };
 
   const handleDeleteMechanic = (id: string) => {
-    setMechanics((prev) => prev.filter((m) => m.id !== id));
-    toast.success("Mechanic removed");
+    setMechanics(mechanics.filter((m) => m.id !== id));
+    toast.success("Team member removed");
   };
 
-  const toggleMechanicActive = (id: string) => {
-    setMechanics((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m))
-    );
+  const handleToggleMechanic = (id: string) => {
+    setMechanics(mechanics.map((m) => (m.id === id ? { ...m, active: !m.active } : m)));
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Profile & Settings</h1>
-        <p className="text-muted-foreground">Manage your business details and team</p>
+        <h1 className="text-3xl font-bold text-foreground">Business Profile</h1>
+        <p className="text-muted-foreground">Manage your service center information and team</p>
       </div>
 
-      <Tabs defaultValue="business">
-        <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
-          <TabsTrigger value="business">Business</TabsTrigger>
+      <Tabs defaultValue="business" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="business">Business Info</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        {/* Business Details */}
-        <TabsContent value="business" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="glass-card lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Business Information</CardTitle>
-                <CardDescription>Update your business profile details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name</Label>
-                    <Input
-                      id="businessName"
-                      value={businessForm.businessName}
-                      onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="serviceType">Service Type</Label>
-                    <Select
-                      value={businessForm.serviceType}
-                      onValueChange={(value) => setBusinessForm({ ...businessForm, serviceType: value })}
-                    >
-                      <SelectTrigger id="serviceType">
-                        <SelectValue placeholder="Select service type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Mechanical Repair">Mechanical Repair</SelectItem>
-                        <SelectItem value="Auto Electric">Auto Electric</SelectItem>
-                        <SelectItem value="Spare Parts Shop">Spare Parts Shop</SelectItem>
-                        <SelectItem value="Towing/Roadside Assistance">Towing/Roadside Assistance</SelectItem>
-                        <SelectItem value="Gas Station">Gas Station</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location / Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="location"
-                      className="pl-9"
-                      value={businessForm.location}
-                      onChange={(e) => setBusinessForm({ ...businessForm, location: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="operatingHours">Operating Hours</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="operatingHours"
-                      className="pl-9"
-                      value={businessForm.operatingHours}
-                      onChange={(e) => setBusinessForm({ ...businessForm, operatingHours: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Business Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Tell customers about your business..."
-                    value={businessForm.description}
-                    onChange={(e) => setBusinessForm({ ...businessForm, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <Button
-                  onClick={handleSaveBusiness}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Verification Card */}
-            <Card className="glass-card h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-green-500" />
-                  Verification
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge
-                    className={
-                      user?.verified
-                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                        : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                    }
-                    variant="outline"
-                  >
-                    {user?.verified ? "Verified" : "Pending"}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <span className="text-sm text-muted-foreground">Commercial Register</span>
-                  <p className="text-sm font-medium text-foreground">CR-2024-XXXXX</p>
-                </div>
-                <div className="space-y-2">
-                  <span className="text-sm text-muted-foreground">Tax ID</span>
-                  <p className="text-sm font-medium text-foreground">TX-XXXX-XXXX</p>
-                </div>
-                {!user?.verified && (
-                  <p className="text-xs text-muted-foreground">
-                    Your account is under review. Verification usually takes 1-2 business days.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Team Management */}
-        <TabsContent value="team" className="mt-6">
+        <TabsContent value="business" className="space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Team Members</CardTitle>
-                  <CardDescription>Manage your mechanics and staff</CardDescription>
+              <CardTitle>Business Information</CardTitle>
+              <CardDescription>Update your service center details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="businessName">Business Name</Label>
+                  <Input
+                    id="businessName"
+                    value={form.businessName}
+                    onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+                  />
                 </div>
-                <Button
-                  onClick={openAddMechanic}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Member
-                </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="serviceType">Service Type</Label>
+                  <Select value={form.serviceType} onValueChange={(v) => setForm({ ...form, serviceType: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mechanical Repair">Mechanical Repair</SelectItem>
+                      <SelectItem value="Auto Electric">Auto Electric</SelectItem>
+                      <SelectItem value="Spare Parts Shop">Spare Parts Shop</SelectItem>
+                      <SelectItem value="Towing/Roadside Assistance">Towing/Roadside Assistance</SelectItem>
+                      <SelectItem value="Gas Station">Gas Station</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hours">Operating Hours</Label>
+                  <Input id="hours" value={form.operatingHours} onChange={(e) => setForm({ ...form, operatingHours: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="about">About</Label>
+                <Textarea id="about" value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} rows={3} />
+              </div>
+
+              <Button
+                onClick={handleSave}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Verification Status</CardTitle>
             </CardHeader>
             <CardContent>
-              {mechanics.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No team members</h3>
-                  <p className="text-muted-foreground mb-4">Add your first team member to get started.</p>
-                  <Button onClick={openAddMechanic} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Member
-                  </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20 text-green-400">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {mechanics.map((mechanic) => (
-                    <div
-                      key={mechanic.id}
-                      className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border border-border p-4"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold">
-                          {mechanic.name.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground">{mechanic.name}</p>
-                          <p className="text-sm text-muted-foreground">{mechanic.specialization}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5" />
-                          {mechanic.phone}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {mechanic.active ? "Active" : "Inactive"}
-                          </span>
-                          <Switch
-                            checked={mechanic.active}
-                            onCheckedChange={() => toggleMechanicActive(mechanic.id)}
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditMechanic(mechanic)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteMechanic(mechanic.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                <div>
+                  <p className="font-medium text-foreground">Verified Business</p>
+                  <p className="text-sm text-muted-foreground">Your business has been verified by Synly</p>
                 </div>
-              )}
+                <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30" variant="outline">
+                  Verified
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Settings */}
-        <TabsContent value="settings" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Alert Radius</CardTitle>
-                <CardDescription>Set the radius for receiving nearby requests</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Distance Radius</Label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="1"
-                      max="50"
-                      value={radius}
-                      onChange={(e) => setRadius(e.target.value)}
-                      className="flex-1 accent-orange-500"
-                    />
-                    <span className="text-sm font-medium text-foreground w-16">{radius} km</span>
+        <TabsContent value="team" className="space-y-4">
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Team Members</CardTitle>
+                <CardDescription>Manage your mechanics and staff</CardDescription>
+              </div>
+              <Button
+                onClick={() => setAddOpen(true)}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {mechanics.map((mechanic) => (
+                  <div key={mechanic.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">{mechanic.name}</p>
+                        <p className="text-xs text-muted-foreground">{mechanic.specialization}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={mechanic.active} onCheckedChange={() => handleToggleMechanic(mechanic.id)} />
+                      <Button variant="outline" size="icon" onClick={() => handleEditMechanic(mechanic)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => handleDeleteMechanic(mechanic.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    You'll receive requests from customers within {radius} km of your location.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => toast.success("Alert radius updated")}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Radius
-                </Button>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>Manage your notification preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Push Notifications</p>
-                    <p className="text-xs text-muted-foreground">Receive alerts for new requests</p>
-                  </div>
-                  <Switch checked={notifications} onCheckedChange={setNotifications} />
+        <TabsContent value="settings" className="space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Alert Radius</CardTitle>
+              <CardDescription>Set the radius for incoming request alerts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Distance Radius</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="text-sm font-medium text-foreground w-16">{radius} km</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Email Notifications</p>
-                    <p className="text-xs text-muted-foreground">Get updates via email</p>
-                  </div>
-                  <Switch defaultChecked />
+                <p className="text-xs text-muted-foreground">You'll receive alerts from customers within {radius} km.</p>
+              </div>
+              <Button
+                onClick={() => toast.success("Alert radius updated")}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Radius
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>Manage your notification preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Push Notifications</p>
+                  <p className="text-xs text-muted-foreground">Receive alerts for new requests</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">SMS Alerts</p>
-                    <p className="text-xs text-muted-foreground">Emergency requests via SMS</p>
-                  </div>
-                  <Switch defaultChecked />
+                <Switch checked={notifications} onCheckedChange={setNotifications} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Email Notifications</p>
+                  <p className="text-xs text-muted-foreground">Get updates via email</p>
                 </div>
-                <Button
-                  onClick={() => toast.success("Notification preferences saved")}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Preferences
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                <Switch defaultChecked />
+              </div>
+              <Button
+                onClick={() => toast.success("Preferences saved")}
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Preferences
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Mechanic Dialog */}
-      <Dialog open={mechanicDialog} onOpenChange={setMechanicDialog}>
-        <DialogContent className="max-w-md">
+      {/* Add Mechanic Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingMechanic ? "Edit" : "Add"} Team Member</DialogTitle>
-            <DialogDescription>
-              {editingMechanic ? "Update team member details" : "Add a new mechanic or staff member"}
-            </DialogDescription>
+            <DialogTitle>Add Team Member</DialogTitle>
+            <DialogDescription>Add a new mechanic or staff member to your team.</DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="mech-name">Full Name</Label>
-              <Input
-                id="mech-name"
-                placeholder="e.g. Ahmed Hassan"
-                value={mechanicForm.name}
-                onChange={(e) => setMechanicForm({ ...mechanicForm, name: e.target.value })}
-              />
+              <Label>Full Name</Label>
+              <Input value={newMechanic.name} onChange={(e) => setNewMechanic({ ...newMechanic, name: e.target.value })} placeholder="e.g. Ahmed Hassan" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mech-spec">Specialization</Label>
-              <Input
-                id="mech-spec"
-                placeholder="e.g. Engine & Transmission"
-                value={mechanicForm.specialization}
-                onChange={(e) => setMechanicForm({ ...mechanicForm, specialization: e.target.value })}
-              />
+              <Label>Specialization</Label>
+              <Input value={newMechanic.specialization} onChange={(e) => setNewMechanic({ ...newMechanic, specialization: e.target.value })} placeholder="e.g. Engine Repair" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mech-phone">Phone</Label>
-              <Input
-                id="mech-phone"
-                placeholder="+20 100 123 4567"
-                value={mechanicForm.phone}
-                onChange={(e) => setMechanicForm({ ...mechanicForm, phone: e.target.value })}
-              />
+              <Label>Phone</Label>
+              <Input value={newMechanic.phone} onChange={(e) => setNewMechanic({ ...newMechanic, phone: e.target.value })} placeholder="+20 100 123 4567" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mech-email">Email</Label>
-              <Input
-                id="mech-email"
-                type="email"
-                placeholder="name@autocare.com"
-                value={mechanicForm.email}
-                onChange={(e) => setMechanicForm({ ...mechanicForm, email: e.target.value })}
-              />
+              <Label>Email</Label>
+              <Input value={newMechanic.email} onChange={(e) => setNewMechanic({ ...newMechanic, email: e.target.value })} placeholder="email@example.com" />
             </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">Add Member</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setMechanicDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveMechanic}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-            >
-              {editingMechanic ? "Save Changes" : "Add Member"}
-            </Button>
+      {/* Edit Mechanic Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Team Member</DialogTitle>
+            <DialogDescription>Update team member information.</DialogDescription>
+          </DialogHeader>
+          {editMechanic && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input value={editMechanic.name} onChange={(e) => setEditMechanic({ ...editMechanic, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Specialization</Label>
+                <Input value={editMechanic.specialization} onChange={(e) => setEditMechanic({ ...editMechanic, specialization: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={editMechanic.phone} onChange={(e) => setEditMechanic({ ...editMechanic, phone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={editMechanic.email} onChange={(e) => setEditMechanic({ ...editMechanic, email: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -47,7 +47,7 @@ export function RegisterPage() {
       await register(formData);
       setSuccess(true);
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/user");
       }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");

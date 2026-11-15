@@ -1,12 +1,22 @@
-import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
-import { cn } from "../lib/utils";
+import { useAuth } from "../context/auth-context";
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { mode, setMode } = useAuth();
+
+  // Keep mode in sync with the current route
+  useEffect(() => {
+    if (location.pathname.startsWith("/dashboard") && mode !== "vendor") {
+      setMode("vendor");
+    } else if (location.pathname.startsWith("/user") && mode !== "user") {
+      setMode("user");
+    }
+  }, [location.pathname, mode, setMode]);
 
   return (
     <div className="min-h-screen bg-background">
