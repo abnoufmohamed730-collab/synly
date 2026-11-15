@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider, useAuth } from "./context/auth-context";
 import { DashboardLayout } from "./components/dashboard-layout";
+import { WelcomePage } from "./pages/Welcome";
 import { LoginPage } from "./pages/login";
 import { RegisterPage } from "./pages/register";
 import { DashboardPage } from "./pages/dashboard";
@@ -27,10 +28,16 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            {/* Public Welcome Page */}
+            <Route path="/" element={<WelcomePage />} />
+
+            {/* Auth Pages */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Protected Dashboard */}
             <Route
-              path="/"
+              path="/dashboard"
               element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}
             >
               <Route index element={<DashboardPage />} />
@@ -38,6 +45,8 @@ export default function App() {
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
+
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

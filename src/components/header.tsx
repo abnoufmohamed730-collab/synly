@@ -100,7 +100,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                   </p>
                 </div>
                 <NavLink
-                  to="/profile"
+                  to="/dashboard/profile"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
                 >
@@ -108,7 +108,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                   Profile & Settings
                 </NavLink>
                 <NavLink
-                  to="/requests"
+                  to="/dashboard/requests"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
                 >
@@ -116,7 +116,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                   Requests
                 </NavLink>
                 <NavLink
-                  to="/catalog"
+                  to="/dashboard/catalog"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
                 >

@@ -14,10 +14,10 @@ import {
 import { useAuth } from "../context/auth-context";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/requests", label: "Requests", icon: Inbox, end: false },
-  { to: "/catalog", label: "Catalog", icon: Wrench, end: false },
-  { to: "/profile", label: "Profile", icon: Settings, end: false },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/dashboard/requests", label: "Requests", icon: Inbox, end: false },
+  { to: "/dashboard/catalog", label: "Catalog", icon: Wrench, end: false },
+  { to: "/dashboard/profile", label: "Profile", icon: Settings, end: false },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
