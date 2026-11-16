@@ -12,20 +12,33 @@ import {
   Menu,
   Car,
   Store,
+  Siren,
+  Package,
+  Stethoscope,
+  Search,
   Navigation,
+  Star,
+  MapPin,
   Plus,
   ArrowRight,
+  Wrench,
+  CircleDot,
+  Battery,
+  Fuel,
+  Lock,
+  Clock,
 } from "lucide-react";
-import {
-  CityRidesIcon,
-  CityToCityIcon,
-  CouriersIcon,
-  FreightIcon,
-  LocationIcon,
-  ClockIcon,
-  ArrowRightIcon,
-  SearchIcon,
-} from "../components/home-icons";
+import { cn } from "../lib/utils";
+import { mockNearbyCenters, mockUserRequests } from "../lib/mock-data";
+
+const quickActions = [
+  { key: "map.towing", icon: Car, color: "bg-blue-500/10 text-blue-400" },
+  { key: "map.battery", icon: Battery, color: "bg-green-500/10 text-green-400" },
+  { key: "map.tire", icon: CircleDot, color: "bg-amber-500/10 text-amber-400" },
+  { key: "map.fuel", icon: Fuel, color: "bg-orange-500/10 text-orange-400" },
+  { key: "map.lockout", icon: Lock, color: "bg-purple-500/10 text-purple-400" },
+  { key: "map.mechanical", icon: Wrench, color: "bg-rose-500/10 text-rose-400" },
+];
 
 function StatusBadge({ status }: { status: string }) {
   const { t } = useLanguage();
@@ -118,89 +131,87 @@ export function UserMapDashboardPage() {
               </Button>
             </div>
 
-            {/* Service cards grid */}
+            {/* Bottom sheet grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Large card: City Rides */}
+              {/* Large card: Roadside Assistance */}
               <button
                 onClick={() => navigate("/user/requests")}
-                className="group relative overflow-hidden rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/15 via-green-500/5 to-transparent p-4 text-left transition-all hover:border-green-500/50 hover:from-green-500/20 md:col-span-2"
+                className="group relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent p-4 text-left transition-all hover:border-orange-500/50 hover:from-orange-500/20 md:col-span-2"
               >
-                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-green-500/10 blur-2xl transition-all group-hover:bg-green-500/20" />
+                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-500/10 blur-2xl transition-all group-hover:bg-orange-500/20" />
                 <div className="relative flex items-center gap-4">
-                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30 transition-transform group-hover:scale-105">
-                    <CityRidesIcon className="h-7 w-7 text-white" />
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-105">
+                    <Siren className="h-7 w-7 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-lg font-bold text-white">{t("map.cityRides")}</p>
-                    <p className="text-sm text-slate-400">{t("map.cityRidesDesc")}</p>
+                    <p className="text-lg font-bold text-white">{t("map.roadside")}</p>
+                    <p className="text-sm text-slate-400">{t("map.roadsideDesc")}</p>
                   </div>
-                  <div className="flex items-center gap-2 rounded-full bg-green-500/20 px-4 py-2 text-sm font-semibold text-green-300 transition-colors group-hover:bg-green-500/30">
-                    {t("map.rideNow")}
+                  <div className="flex items-center gap-2 rounded-full bg-orange-500/20 px-4 py-2 text-sm font-semibold text-orange-300 transition-colors group-hover:bg-orange-500/30">
+                    {t("map.roadsideCta")}
                     <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
                   </div>
                 </div>
               </button>
 
-              {/* City to City */}
-              <button
-                onClick={() => navigate("/user/requests")}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-transform group-hover:scale-105">
-                    <CityToCityIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">{t("map.cityToCity")}</p>
-                    <p className="text-xs text-slate-400">{t("map.cityToCityDesc")}</p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Couriers */}
+              {/* Spare Parts Orders */}
               <button
                 onClick={() => navigate("/user/shops")}
                 className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-transform group-hover:scale-105">
-                    <CouriersIcon className="h-5 w-5" />
+                    <Package className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{t("map.couriers")}</p>
-                    <p className="text-xs text-slate-400">{t("map.couriersDesc")}</p>
+                    <p className="font-semibold text-white">{t("map.spareParts")}</p>
+                    <p className="text-xs text-slate-400">{t("map.sparePartsDesc")}</p>
                   </div>
                 </div>
               </button>
 
-              {/* Freight */}
+              {/* Diagnostics & Inspection */}
               <button
                 onClick={() => navigate("/user/shops")}
                 className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-transform group-hover:scale-105">
-                    <FreightIcon className="h-5 w-5" />
+                    <Stethoscope className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{t("map.freight")}</p>
-                    <p className="text-xs text-slate-400">{t("map.freightDesc")}</p>
+                    <p className="font-semibold text-white">{t("map.diagnostics")}</p>
+                    <p className="text-xs text-slate-400">{t("map.diagnosticsDesc")}</p>
                   </div>
                 </div>
               </button>
             </div>
 
+            {/* Quick actions row */}
+            <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {quickActions.map((action) => (
+                <button
+                  key={action.key}
+                  onClick={() => navigate("/user/requests")}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-blue-500/30 hover:bg-white/10"
+                >
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", action.color)}>
+                    <action.icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-300">{t(action.key)}</span>
+                </button>
+              ))}
+            </div>
+
             {/* Search bar */}
             <div className="relative mt-4">
-              <div className="absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400">
-                <SearchIcon />
-              </div>
+              <Search className="absolute start-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 type="text"
-                placeholder={t("map.whereTo")}
+                placeholder={t("map.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="glass-input h-12 ps-12 pe-12 text-sm placeholder:text-slate-500"
+                className="glass-input h-12 ps-11 pe-12 text-sm placeholder:text-slate-500"
               />
               <button
                 className="absolute end-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-500 p-2 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
@@ -208,46 +219,6 @@ export function UserMapDashboardPage() {
               >
                 <Navigation className="h-4 w-4" />
               </button>
-            </div>
-
-            {/* Recent trips */}
-            <div className="mt-4">
-              <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-                <ClockIcon className="text-slate-400" />
-                {t("map.recentTrips")}
-              </h2>
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate("/user/requests")}
-                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-slate-400">
-                    <LocationIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{t("map.pickupPoint")}</p>
-                    <p className="text-xs text-slate-400 truncate">{t("map.recentTrip1")}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <ArrowRightIcon className="h-3 w-3" />
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/user/requests")}
-                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-slate-400">
-                    <LocationIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{t("map.destination")}</p>
-                    <p className="text-xs text-slate-400 truncate">{t("map.recentTrip2")}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <ArrowRightIcon className="h-3 w-3" />
-                  </div>
-                </button>
-              </div>
             </div>
           </div>
         </div>
