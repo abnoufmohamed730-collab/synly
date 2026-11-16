@@ -1,48 +1,62 @@
 import { useNavigate } from "react-router-dom";
-import { Wrench, ArrowRight, ShieldCheck, Zap, Car } from "lucide-react";
+import { Wrench, ArrowRight, ShieldCheck, Zap, Car, Sun, Moon } from "lucide-react";
 import { useLanguage } from "../context/language-context";
+import { useTheme } from "next-themes";
 import { LanguageSwitcher } from "../components/language-switcher";
 
 export function WelcomePage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-[#090A0F] text-white flex flex-col justify-between p-6 md:p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between p-6 md:p-12 relative overflow-hidden">
       {/* Background Glow Effects (iPhone ambient glow) */}
       <div className="ambient-glow float-slow top-1/4 -start-20 w-96 h-96 bg-blue-600/20" />
       <div className="ambient-glow float-slower bottom-10 -end-20 w-96 h-96 bg-orange-500/15" />
 
-      {/* Top Header / Logo & Language Switcher */}
+      {/* Top Header / Logo & Language Switcher & Theme Toggle */}
       <header className="flex items-center justify-between z-10 w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 border border-white/10">
             <Car className="w-6 h-6 text-white" />
           </div>
-          <span className="text-2xl font-black tracking-wider text-white">
+          <span className="text-2xl font-black tracking-wider text-foreground">
             SYNLY
           </span>
         </div>
 
-        {/* Global Language Switcher */}
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-xl p-2 hover:bg-accent text-muted-foreground transition-colors border border-border"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </header>
 
       {/* Hero Content */}
       <main className="max-w-3xl mx-auto text-center z-10 my-auto py-12">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/60 border border-white/10 text-orange-400 text-xs font-semibold mb-6 backdrop-blur-xl shadow-lg">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-card/60 border border-border text-orange-400 text-xs font-semibold mb-6 backdrop-blur-xl shadow-lg">
           <Zap className="w-3.5 h-3.5 text-orange-400" />
           <span>{t("welcome.tagline")}</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight mb-6 leading-tight">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight mb-6 leading-tight text-foreground">
           {t("welcome.title1")}{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-400 to-orange-400">
             {t("welcome.titleHighlight")}
           </span>
         </h1>
 
-        <p className="text-slate-300 text-base md:text-lg mb-10 leading-relaxed max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-base md:text-lg mb-10 leading-relaxed max-w-2xl mx-auto">
           {t("welcome.subtitle")}
         </p>
 
@@ -63,21 +77,21 @@ export function WelcomePage() {
           <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 flex-shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium text-slate-200">{t("welcome.feature1")}</span>
+          <span className="text-sm font-medium text-foreground">{t("welcome.feature1")}</span>
         </div>
 
         <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 flex-shrink-0">
             <Zap className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium text-slate-200">{t("welcome.feature2")}</span>
+          <span className="text-sm font-medium text-foreground">{t("welcome.feature2")}</span>
         </div>
 
         <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 flex-shrink-0">
             <Wrench className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium text-slate-200">{t("welcome.feature3")}</span>
+          <span className="text-sm font-medium text-foreground">{t("welcome.feature3")}</span>
         </div>
       </footer>
     </div>

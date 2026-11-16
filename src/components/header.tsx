@@ -87,11 +87,20 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors border border-white/5"
+          className="rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors border border-white/5 flex items-center gap-1.5"
           aria-label="Toggle theme"
         >
-          <Sun className="h-4 w-4 dark:hidden" />
-          <Moon className="h-4 w-4 hidden dark:block" />
+          {theme === "dark" ? (
+            <>
+              <Sun className="h-4 w-4" />
+              <span className="text-xs font-medium text-slate-300">Light</span>
+            </>
+          ) : (
+            <>
+              <Moon className="h-4 w-4" />
+              <span className="text-xs font-medium text-slate-300">Dark</span>
+            </>
+          )}
         </button>
 
         {/* User menu */}
