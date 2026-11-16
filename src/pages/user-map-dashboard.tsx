@@ -4,7 +4,7 @@ import { useLanguage } from "../context/language-context";
 import { useAuth } from "../context/auth-context";
 import { Sidebar } from "../components/sidebar";
 import { LanguageSwitcher } from "../components/language-switcher";
-import { MapBackground } from "../components/map-background";
+import { MapComponent } from "../components/MapComponent";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -17,8 +17,6 @@ import {
   Stethoscope,
   Search,
   Navigation,
-  Star,
-  MapPin,
   Plus,
   ArrowRight,
   Wrench,
@@ -29,7 +27,6 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { mockNearbyCenters, mockUserRequests } from "../lib/mock-data";
 
 const quickActions = [
   { key: "map.towing", icon: Car, color: "bg-blue-500/10 text-blue-400" },
@@ -60,7 +57,6 @@ export function UserMapDashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   return (
@@ -70,7 +66,7 @@ export function UserMapDashboardPage() {
       <div className="ambient-glow float-slower top-1/3 -right-32 h-96 w-96 bg-orange-500/10" />
 
       {/* Map */}
-      <MapBackground selectedPin={selectedPin} onSelectPin={setSelectedPin} />
+      <MapComponent center={[30.0444, 31.2357]} zoom={15} />
 
       {/* Top-left: hamburger + language switcher */}
       <div className="absolute top-4 start-4 z-30 flex items-center gap-2">
@@ -102,7 +98,6 @@ export function UserMapDashboardPage() {
 
       {/* Current location button */}
       <button
-        onClick={() => setSelectedPin(null)}
         className="glass-btn absolute bottom-40 end-4 z-30 h-11 w-11 shadow-lg md:bottom-44"
         aria-label={t("common.recenter")}
       >
