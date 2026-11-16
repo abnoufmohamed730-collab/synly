@@ -73,10 +73,10 @@ export function UserMapDashboardPage() {
       <MapBackground selectedPin={selectedPin} onSelectPin={setSelectedPin} />
 
       {/* Top-left: hamburger + language switcher */}
-      <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+      <div className="absolute top-4 start-4 z-30 flex items-center gap-2">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="glass-btn h-10 w-10"
+          className="glass-btn h-10 w-10 shadow-lg"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
@@ -85,15 +85,15 @@ export function UserMapDashboardPage() {
       </div>
 
       {/* Top-right: mode badge + avatar */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+      <div className="absolute top-4 end-4 z-30 flex items-center gap-2">
         <Badge
           variant="outline"
-          className="gap-1.5 border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 backdrop-blur-xl"
+          className="gap-1.5 border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 backdrop-blur-xl shadow-lg"
         >
           <Car className="h-3.5 w-3.5" />
           {t("common.userMode")}
         </Badge>
-        <div className="glass-btn h-10 w-10 rounded-full">
+        <div className="glass-btn h-10 w-10 rounded-full shadow-lg">
           <span className="text-sm font-bold text-blue-300">
             {user?.businessName?.charAt(0).toUpperCase() || "A"}
           </span>
@@ -103,7 +103,7 @@ export function UserMapDashboardPage() {
       {/* Current location button */}
       <button
         onClick={() => setSelectedPin(null)}
-        className="glass-btn absolute bottom-40 right-4 z-30 h-11 w-11 md:bottom-44"
+        className="glass-btn absolute bottom-40 end-4 z-30 h-11 w-11 shadow-lg md:bottom-44"
         aria-label={t("common.recenter")}
       >
         <Navigation className="h-5 w-5 text-blue-400" />
@@ -205,19 +205,18 @@ export function UserMapDashboardPage() {
 
             {/* Search bar */}
             <div className="relative mt-4">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 rtl:hidden" />
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 hidden rtl:block" />
+              <Search className="absolute start-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 type="text"
                 placeholder={t("map.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={cn(
-                  "glass-input h-12 pl-11 pr-11 text-sm rtl:pl-11 rtl:pr-11",
-                  "placeholder:text-slate-500"
-                )}
+                className="glass-input h-12 ps-11 pe-12 text-sm placeholder:text-slate-500"
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-500 p-1.5 text-white shadow-lg shadow-blue-500/30 rtl:left-2 rtl:right-auto">
+              <button
+                className="absolute end-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-500 p-2 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
+                aria-label={t("common.search")}
+              >
                 <Navigation className="h-4 w-4" />
               </button>
             </div>
@@ -225,7 +224,7 @@ export function UserMapDashboardPage() {
         </div>
       </div>
 
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} forceDrawer={true} />
     </div>
   );
 }
