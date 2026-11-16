@@ -32,10 +32,10 @@ export function MapComponent({
         style={{ width: "100%", height: "100%", background: "#090A0F" }}
         zoomControl={false}
       >
-        {/* Dark mode tile layer to match Synly's glassmorphism theme */}
+        {/* Free OpenStreetMap tiles - no API key required */}
         <TileLayer
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <Marker position={center} icon={customIcon}>
           <Popup>

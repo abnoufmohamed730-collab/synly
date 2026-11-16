@@ -164,3 +164,8 @@
 .float-slower {
   animation: float-slower 16s ease-in-out infinite;
 }
+
+/* Dark mode filter for OpenStreetMap tiles (no API key needed) */
+.leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+}
