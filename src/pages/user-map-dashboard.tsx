@@ -96,14 +96,6 @@ export function UserMapDashboardPage() {
         </div>
       </div>
 
-      {/* Current location button */}
-      <button
-        className="glass-btn absolute bottom-40 end-4 z-30 h-11 w-11 shadow-lg md:bottom-44"
-        aria-label={t("common.recenter")}
-      >
-        <Navigation className="h-5 w-5 text-blue-400" />
-      </button>
-
       {/* Bottom sheet */}
       <div className="absolute inset-x-0 bottom-0 z-30 p-3 md:p-5">
         <div className="mx-auto max-w-4xl">
