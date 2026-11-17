@@ -25,6 +25,7 @@ import {
   Fuel,
   Lock,
   Clock,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -43,7 +44,7 @@ function StatusBadge({ status }: { status: string }) {
     pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
     accepted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     completed: "bg-green-500/20 text-green-400 border-green-500/30",
-    cancelled: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+    cancelled: "bg-gray-500/20 text-gray-500/30",
   };
   return (
     <Badge className={map[status] || map.pending} variant="outline">
@@ -58,6 +59,11 @@ export function UserMapDashboardPage() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [sheetExpanded, setSheetExpanded] = useState(true);
+
+  const handleLocate = () => {
+    setSheetExpanded(false);
+  };
 
   return (
     <div className="relative h-screen overflow-hidden bg-[#090A0F]">
@@ -66,7 +72,7 @@ export function UserMapDashboardPage() {
       <div className="ambient-glow float-slower top-1/3 -right-32 h-96 w-96 bg-orange-500/10" />
 
       {/* Map */}
-      <MapComponent center={[30.0444, 31.2357]} zoom={15} />
+      <MapComponent center={[30.0444, 31.2357]} zoom={15} onLocate={handleLocate} />
 
       {/* Top-left: hamburger + language switcher */}
       <div className="absolute top-4 start-4 z-30 flex items-center gap-2">
@@ -97,7 +103,13 @@ export function UserMapDashboardPage() {
       </div>
 
       {/* Bottom sheet */}
-      <div className="absolute inset-x-0 bottom-0 z-30 p-3 md:p-5">
+      <div
+        className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-500 ease-out ${
+          sheetExpanded
+            ? "bottom-0 opacity-100 pointer-events-auto"
+            : "bottom-[calc(-100%+80px)] opacity-0 pointer-events-none"
+        }`}
+      >
         <div className="mx-auto max-w-4xl">
           {/* Drag handle */}
           <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/20" />
@@ -106,7 +118,9 @@ export function UserMapDashboardPage() {
             {/* Greeting */}
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold text-white md:text-2xl">{t("map.greeting")}</h1>
+                <h1 className="text-xl font-bold text-white md:text-2xl">
+                  {t("map.greeting")}
+                </h1>
                 <p className="text-sm text-slate-400">{t("map.subtitle")}</p>
               </div>
               <Button
@@ -210,6 +224,17 @@ export function UserMapDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating expand button when sheet is collapsed */}
+      {sheetExpanded === false && (
+        <button
+          onClick={() => setSheetExpanded(true)}
+          className="absolute bottom-4 end-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg hover:bg-blue-700 transition-all"
+          aria-label="Expand bottom sheet"
+        >
+          <Maximize2 className="w-5 h-5" />
+        </button>
+      )}
 
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} forceDrawer={true} />
     </div>

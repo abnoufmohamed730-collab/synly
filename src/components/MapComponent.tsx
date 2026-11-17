@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Navigation } from "lucide-react";
@@ -18,10 +24,11 @@ const customIcon = new L.Icon({
 interface MapComponentProps {
   center?: [number, number];
   zoom?: number;
+  onLocate?: () => void;
 }
 
 // Component to handle geolocation and recenter button
-function LocationMarker() {
+function LocationMarker({ onLocate }: { onLocate?: () => void }) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const map = useMap();
 
@@ -33,6 +40,7 @@ function LocationMarker() {
           const newPos: [number, number] = [latitude, longitude];
           setPosition(newPos);
           map.flyTo(newPos, 16, { animate: true });
+          onLocate?.();
         },
         (error) => {
           console.error("Error getting location: ", error);
@@ -66,6 +74,7 @@ function LocationMarker() {
 export function MapComponent({
   center = [30.0444, 31.2357],
   zoom = 15,
+  onLocate,
 }: MapComponentProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -81,7 +90,7 @@ export function MapComponent({
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker />
+        <LocationMarker onLocate={onLocate} />
         <Marker position={center} icon={customIcon}>
           <Popup>
             موقعك الحالي <br /> أنت هنا.
