@@ -25,7 +25,7 @@ import {
   Fuel,
   Lock,
   Clock,
-  Maximize2,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -65,6 +65,10 @@ export function UserMapDashboardPage() {
     setSheetExpanded(false);
   };
 
+  const handleMapDragStart = () => {
+    setSheetExpanded(false);
+  };
+
   return (
     <div className="relative h-screen overflow-hidden bg-[#090A0F]">
       {/* Ambient glows */}
@@ -72,7 +76,12 @@ export function UserMapDashboardPage() {
       <div className="ambient-glow float-slower top-1/3 -right-32 h-96 w-96 bg-orange-500/10" />
 
       {/* Map */}
-      <MapComponent center={[30.0444, 31.2357]} zoom={15} onLocate={handleLocate} />
+      <MapComponent
+        center={[30.0444, 31.2357]}
+        zoom={15}
+        onLocate={handleLocate}
+        onMapDragStart={handleMapDragStart}
+      />
 
       {/* Top-left: hamburger + language switcher */}
       <div className="absolute top-4 start-4 z-30 flex items-center gap-2">
@@ -104,15 +113,26 @@ export function UserMapDashboardPage() {
 
       {/* Bottom sheet */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-500 ease-out ${
+        className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-300 ease-in-out ${
           sheetExpanded
-            ? "bottom-0 opacity-100 pointer-events-auto"
-            : "bottom-[calc(-100%+80px)] opacity-0 pointer-events-none"
+            ? "translate-y-0 opacity-100 pointer-events-auto"
+            : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
         }`}
       >
         <div className="mx-auto max-w-4xl">
-          {/* Drag handle */}
-          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/20" />
+          {/* Drag handle / expand pill */}
+          <button
+            onClick={() => setSheetExpanded((v) => !v)}
+            className="mx-auto mb-3 flex h-6 w-16 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
+            aria-label={sheetExpanded ? "Collapse panel" : "Expand panel"}
+          >
+            <ChevronUp
+              className={cn(
+                "h-4 w-4 text-white/70 transition-transform duration-300",
+                sheetExpanded ? "rotate-0" : "rotate-180"
+              )}
+            />
+          </button>
 
           <div className="glass-sheet rounded-3xl p-4 md:p-5">
             {/* Greeting */}
@@ -224,17 +244,6 @@ export function UserMapDashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Floating expand button when sheet is collapsed */}
-      {sheetExpanded === false && (
-        <button
-          onClick={() => setSheetExpanded(true)}
-          className="absolute bottom-4 end-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg hover:bg-blue-700 transition-all"
-          aria-label="Expand bottom sheet"
-        >
-          <Maximize2 className="w-5 h-5" />
-        </button>
-      )}
 
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} forceDrawer={true} />
     </div>

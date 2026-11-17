@@ -21,10 +21,24 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+// Blue pulsing marker icon for user's location (Google Maps style)
+const bluePulseIcon = new L.Icon({
+  iconUrl: "data:image/svg+xml;base64," +
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+    "<circle cx='12' cy='12' r='8' fill='%23007bff' fill-opacity='0.2' stroke='%23007bff' stroke-width='2'/>" +
+    "<circle cx='12' cy='12' r='4' fill='%23007bff'/>" +
+    "<circle cx='12' cy='12' r='1' fill='%23007bff' fill-opacity='0.6'/>" +
+    "</svg>",
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12],
+});
+
 interface MapComponentProps {
   center?: [number, number];
   zoom?: number;
   onLocate?: () => void;
+  onMapDragStart?: () => void;
 }
 
 // Component to handle geolocation and recenter button
@@ -75,7 +89,23 @@ export function MapComponent({
   center = [30.0444, 31.2357],
   zoom = 15,
   onLocate,
+  onMapDragStart,
 }: MapComponentProps) {
+  const map = useMap();
+
+  // Handle map drag start to auto-collapse bottom sheet
+  useEffect(() => {
+    const handleDragStart = () => {
+      onMapDragStart?.();
+    };
+
+    map.on("dragstart", handleDragStart);
+
+    return () => {
+      map.off("dragstart", handleDragStart);
+    };
+  }, [map, onMapDragStart]);
+
   return (
     <div className="w-full h-full relative z-0">
       <MapContainer
@@ -91,7 +121,7 @@ export function MapComponent({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <LocationMarker onLocate={onLocate} />
-        <Marker position={center} icon={customIcon}>
+        <Marker position={center} icon={bluePulseIcon}>
           <Popup>
             موقعك الحالي <br /> أنت هنا.
           </Popup>
