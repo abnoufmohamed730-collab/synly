@@ -23,7 +23,8 @@ const customIcon = new L.Icon({
 
 // Blue pulsing marker icon for user's location (Google Maps style)
 const bluePulseIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml;base64," +
+  iconUrl:
+    "data:image/svg+xml;base64," +
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
     "<circle cx='12' cy='12' r='8' fill='%23007bff' fill-opacity='0.2' stroke='%23007bff' stroke-width='2'/>" +
     "<circle cx='12' cy='12' r='4' fill='%23007bff'/>" +
@@ -85,15 +86,10 @@ function LocationMarker({ onLocate }: { onLocate?: () => void }) {
   );
 }
 
-export function MapComponent({
-  center = [30.0444, 31.2357],
-  zoom = 15,
-  onLocate,
-  onMapDragStart,
-}: MapComponentProps) {
+// Component to handle map drag events (must be inside MapContainer)
+function MapEvents({ onMapDragStart }: { onMapDragStart?: () => void }) {
   const map = useMap();
 
-  // Handle map drag start to auto-collapse bottom sheet
   useEffect(() => {
     const handleDragStart = () => {
       onMapDragStart?.();
@@ -106,6 +102,15 @@ export function MapComponent({
     };
   }, [map, onMapDragStart]);
 
+  return null;
+}
+
+export function MapComponent({
+  center = [30.0444, 31.2357],
+  zoom = 15,
+  onLocate,
+  onMapDragStart,
+}: MapComponentProps) {
   return (
     <div className="w-full h-full relative z-0">
       <MapContainer
@@ -120,6 +125,7 @@ export function MapComponent({
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapEvents onMapDragStart={onMapDragStart} />
         <LocationMarker onLocate={onLocate} />
         <Marker position={center} icon={bluePulseIcon}>
           <Popup>
