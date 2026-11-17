@@ -113,7 +113,7 @@ export function UserMapDashboardPage() {
 
       {/* Bottom sheet */}
             <div
-              className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+              className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-400 ease-out ${
                 sheetExpanded
                   ? "translate-y-0 opacity-100 pointer-events-auto"
                   : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
@@ -128,7 +128,7 @@ export function UserMapDashboardPage() {
                 >
                   <ChevronUp
                     className={cn(
-                      "h-4 w-4 text-white/70 transition-transform duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+                      "h-4 w-4 text-white/70 transition-transform duration-400 ease-out",
                       sheetExpanded ? "rotate-0" : "rotate-180"
                     )}
                   />
@@ -192,10 +192,10 @@ export function UserMapDashboardPage() {
               </button>
 
               {/* Diagnostics & Inspection */}
-              <button
-                onClick={() => navigate("/user/shops")}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10"
-              >
+                            <button
+                              onClick={() => navigate("/user/shops")}
+                              className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10 interactive-scale"
+                            >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-transform group-hover:scale-105">
                     <Stethoscope className="h-5 w-5" />
@@ -209,13 +209,13 @@ export function UserMapDashboardPage() {
             </div>
 
             {/* Quick actions row */}
-            <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {quickActions.map((action) => (
-                <button
-                  key={action.key}
-                  onClick={() => navigate("/user/requests")}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-blue-500/30 hover:bg-white/10"
-                >
+                        <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {quickActions.map((action) => (
+                            <button
+                              key={action.key}
+                              onClick={() => navigate("/user/requests")}
+                              className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-blue-500/30 hover:bg-white/10 interactive-scale"
+                            >
                   <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", action.color)}>
                     <action.icon className="h-4 w-4" />
                   </div>
