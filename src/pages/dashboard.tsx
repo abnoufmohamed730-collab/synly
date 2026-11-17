@@ -76,7 +76,7 @@ export function DashboardPage() {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="glass-card">
+        <Card className="glass-card glass-glow interactive-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Active Requests</CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
@@ -89,7 +89,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="glass-card glass-glow interactive-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Completed Jobs</CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
@@ -102,7 +102,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="glass-card glass-glow interactive-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
@@ -115,7 +115,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
+        <Card className="glass-card glass-glow interactive-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -147,7 +147,7 @@ export function DashboardPage() {
         </div>
 
         {pendingRequests.length === 0 ? (
-          <Card className="glass-card">
+          <Card className="glass-card glass-glow">
             <CardContent className="py-12 text-center">
               <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No incoming requests</h3>
@@ -170,7 +170,7 @@ export function DashboardPage() {
 
 function RequestCard({ request }: { request: typeof mockRequests[0] }) {
   return (
-    <Card className="glass-card hover:border-primary/30 transition-colors">
+    <Card className="glass-card glass-glow hover:border-primary/30 transition-colors interactive-scale">
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* Car Info */}
@@ -213,13 +213,13 @@ function RequestCard({ request }: { request: typeof mockRequests[0] }) {
             <Button
               variant="outline"
               size="sm"
-              className="hidden sm:inline-flex"
+              className="hidden sm:inline-flex interactive-scale"
             >
               View Details
             </Button>
             <Button
               size="sm"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 interactive-scale"
             >
               Send Offer
             </Button>

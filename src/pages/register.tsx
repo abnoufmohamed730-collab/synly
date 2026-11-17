@@ -64,7 +64,7 @@ export function RegisterPage() {
         <div className="ambient-glow -top-20 -left-20 h-96 w-96 bg-blue-600/20" />
         <div className="ambient-glow -bottom-20 -right-20 h-96 w-96 bg-orange-500/15" />
 
-        <Card className="glass-card border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10">
+        <Card className="glass-card glass-glow border-white/10 rounded-3xl max-w-md w-full shadow-2xl relative z-10">
           <CardContent className="pt-8 pb-8 text-center space-y-4">
             <div className="flex justify-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/20 border border-green-500/30 text-green-400">
@@ -118,15 +118,15 @@ export function RegisterPage() {
           </p>
 
           <div className="space-y-4">
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("register.feature1")}</span>
             </div>
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-orange-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("register.feature2")}</span>
             </div>
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-sky-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("register.feature3")}</span>
             </div>
@@ -135,7 +135,7 @@ export function RegisterPage() {
 
         {/* Right side - Registration Form */}
         <div className="w-full max-w-xl mx-auto">
-          <Card className="glass-card border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+          <Card className="glass-card glass-glow border-white/10 rounded-3xl shadow-2xl overflow-hidden">
             <CardHeader className="space-y-1.5 text-center pb-4">
               <CardTitle className="text-2xl font-bold text-white">{t("register.title")}</CardTitle>
               <CardDescription className="text-slate-400">
@@ -161,7 +161,7 @@ export function RegisterPage() {
                       placeholder={t("register.businessNamePlaceholder")}
                       value={formData.businessName}
                       onChange={(e) => handleInputChange("businessName", e.target.value)}
-                      className="glass-input h-11"
+                      className="glass-input h-11 interactive-scale"
                       required
                     />
                   </div>
@@ -176,7 +176,7 @@ export function RegisterPage() {
                       placeholder={t("login.emailPlaceholder")}
                       value={formData.email}
                       onChange={(e) => handleInputChange("email", e.target.value)}
-                      className="glass-input h-11"
+                      className="glass-input h-11 interactive-scale"
                       required
                     />
                   </div>
@@ -193,7 +193,7 @@ export function RegisterPage() {
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
-                      className="glass-input h-11"
+                      className="glass-input h-11 interactive-scale"
                       required
                     />
                   </div>
@@ -206,7 +206,7 @@ export function RegisterPage() {
                       value={formData.serviceType}
                       onValueChange={(value) => handleInputChange("serviceType", value)}
                     >
-                      <SelectTrigger className="glass-input h-11 text-white border-white/10">
+                      <SelectTrigger className="glass-input h-11 text-white border-white/10 interactive-scale">
                         <SelectValue placeholder={t("register.selectServiceType")} />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-950/95 border-white/10 text-white backdrop-blur-2xl">
@@ -229,7 +229,7 @@ export function RegisterPage() {
                     placeholder={t("register.commercialRegisterPlaceholder")}
                     value={formData.commercialRegister}
                     onChange={(e) => handleInputChange("commercialRegister", e.target.value)}
-                    className="glass-input h-11"
+                    className="glass-input h-11 interactive-scale"
                     required
                   />
                 </div>
@@ -245,7 +245,7 @@ export function RegisterPage() {
                       placeholder={t("register.locationPlaceholder")}
                       value={formData.location}
                       onChange={(e) => handleInputChange("location", e.target.value)}
-                      className="glass-input h-11 ps-9 pe-4"
+                      className="glass-input h-11 ps-9 pe-4 interactive-scale"
                       required
                     />
                   </div>
@@ -260,14 +260,14 @@ export function RegisterPage() {
                     placeholder={t("register.hoursPlaceholder")}
                     value={formData.operatingHours}
                     onChange={(e) => handleInputChange("operatingHours", e.target.value)}
-                    className="glass-input h-11"
+                    className="glass-input h-11 interactive-scale"
                     required
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold shadow-lg shadow-orange-500/25 border border-white/10 mt-2"
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold shadow-lg shadow-orange-500/25 border border-white/10 interactive-scale mt-2"
                   disabled={isLoading}
                 >
                   {isLoading ? t("register.creating") : t("register.register")}
@@ -275,8 +275,7 @@ export function RegisterPage() {
                 </Button>
               </form>
 
-              <div className="pt-4 border-t border-white/10 text-center">
-                <p className="text-sm text-slate-400">
+              <div className="pt-4 border-t border-white/10 text-center">\n                <p className="text-sm text-slate-400">
                   {t("register.haveAccount")}{" "}
                   <Link to="/login" className="text-blue-400 hover:text-blue-300 font-semibold underline underline-offset-4">
                     {t("register.signIn")}

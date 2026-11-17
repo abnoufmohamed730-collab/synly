@@ -181,11 +181,11 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
       {open && (
         <div className="fixed inset-0 z-50">
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
             onClick={onClose}
             aria-hidden="true"
           />
-          <div className="fixed inset-y-0 start-0 z-50 w-72 max-w-[85vw] shadow-2xl animate-in slide-in-from-start duration-200">
+          <div className="fixed inset-y-0 start-0 z-50 w-72 max-w-[85vw] shadow-2xl animate-in slide-in-from-start duration-300 ease-out">
             {sidebarContent}
           </div>
         </div>

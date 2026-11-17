@@ -38,7 +38,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="lg:hidden rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors"
+          className="lg:hidden rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors interactive-scale"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors border border-white/5 flex items-center gap-1.5"
+          className="rounded-xl p-2 hover:bg-white/10 text-slate-300 transition-colors border border-white/5 flex items-center gap-1.5 interactive-scale"
           aria-label="Toggle theme"
         >
           {theme === "dark" ? (

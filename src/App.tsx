@@ -14,6 +14,7 @@ import { ProfilePage } from "./pages/profile";
 import { UserMapDashboardPage } from "./pages/user-map-dashboard";
 import { UserRequestsPage } from "./pages/user-requests";
 import { ShopsPage } from "./pages/shops";
+import { PageTransition } from "./components/PageTransition";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -43,7 +44,9 @@ export default function App() {
                   index
                   element={
                     <ProtectedRoute>
-                      <UserMapDashboardPage />
+                      <PageTransition>
+                        <UserMapDashboardPage />
+                      </PageTransition>
                     </ProtectedRoute>
                   }
                 />
@@ -65,7 +68,9 @@ export default function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardLayout />
+                    <PageTransition>
+                      <DashboardLayout />
+                    </PageTransition>
                   </ProtectedRoute>
                 }
               >

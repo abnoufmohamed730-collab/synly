@@ -71,15 +71,15 @@ export function LoginPage() {
           </p>
 
           <div className="space-y-4">
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("login.feature1")}</span>
             </div>
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-orange-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("login.feature2")}</span>
             </div>
-            <div className="glass-card rounded-xl p-3.5 flex items-center gap-3">
+            <div className="glass-card glass-glow rounded-xl p-3.5 flex items-center gap-3 interactive-scale">
               <CheckCircle className="h-5 w-5 text-sky-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-200">{t("login.feature3")}</span>
             </div>
@@ -88,7 +88,7 @@ export function LoginPage() {
 
         {/* Right side - Glassmorphism Login Form */}
         <div className="w-full max-w-md mx-auto">
-          <Card className="glass-card border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+          <Card className="glass-card glass-glow border-white/10 rounded-3xl shadow-2xl overflow-hidden">
             <CardHeader className="space-y-1.5 text-center pb-4">
               <CardTitle className="text-2xl font-bold text-white">{t("login.title")}</CardTitle>
               <CardDescription className="text-slate-400">
@@ -116,7 +116,7 @@ export function LoginPage() {
                       placeholder={t("login.emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="glass-input h-12 ps-10 pe-4"
+                      className="glass-input h-12 ps-10 pe-4 interactive-scale"
                       required
                     />
                   </div>
@@ -134,7 +134,7 @@ export function LoginPage() {
                       placeholder={t("login.passwordPlaceholder")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="glass-input h-12 ps-10 pe-4"
+                      className="glass-input h-12 ps-10 pe-4 interactive-scale"
                       required
                     />
                   </div>
@@ -142,7 +142,7 @@ export function LoginPage() {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 border border-white/10"
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 border border-white/10 interactive-scale"
                   disabled={isLoading}
                 >
                   {isLoading ? t("login.signingIn") : t("login.signIn")}

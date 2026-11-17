@@ -15,7 +15,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       <button
         onClick={() => setLang("en")}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 interactive-scale",
           lang === "en"
             ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
             : "text-slate-400 hover:text-white"
@@ -27,7 +27,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       <button
         onClick={() => setLang("ar")}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 interactive-scale",
           lang === "ar"
             ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
             : "text-slate-400 hover:text-white"

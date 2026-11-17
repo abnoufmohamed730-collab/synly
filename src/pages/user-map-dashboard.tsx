@@ -112,27 +112,27 @@ export function UserMapDashboardPage() {
       </div>
 
       {/* Bottom sheet */}
-      <div
-        className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-300 ease-in-out ${
-          sheetExpanded
-            ? "translate-y-0 opacity-100 pointer-events-auto"
-            : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
-        }`}
-      >
-        <div className="mx-auto max-w-4xl">
-          {/* Drag handle / expand pill */}
-          <button
-            onClick={() => setSheetExpanded((v) => !v)}
-            className="mx-auto mb-3 flex h-6 w-16 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
-            aria-label={sheetExpanded ? "Collapse panel" : "Expand panel"}
-          >
-            <ChevronUp
-              className={cn(
-                "h-4 w-4 text-white/70 transition-transform duration-300",
-                sheetExpanded ? "rotate-0" : "rotate-180"
-              )}
-            />
-          </button>
+            <div
+              className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+                sheetExpanded
+                  ? "translate-y-0 opacity-100 pointer-events-auto"
+                  : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
+              }`}
+            >
+              <div className="mx-auto max-w-4xl">
+                {/* Drag handle / expand pill */}
+                <button
+                  onClick={() => setSheetExpanded((v) => !v)}
+                  className="mx-auto mb-3 flex h-6 w-16 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 interactive-scale"
+                  aria-label={sheetExpanded ? "Collapse panel" : "Expand panel"}
+                >
+                  <ChevronUp
+                    className={cn(
+                      "h-4 w-4 text-white/70 transition-transform duration-400 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+                      sheetExpanded ? "rotate-0" : "rotate-180"
+                    )}
+                  />
+                </button>
 
           <div className="glass-sheet rounded-3xl p-4 md:p-5">
             {/* Greeting */}
@@ -155,10 +155,10 @@ export function UserMapDashboardPage() {
             {/* Bottom sheet grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Large card: Roadside Assistance */}
-              <button
-                onClick={() => navigate("/user/requests")}
-                className="group relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent p-4 text-left transition-all hover:border-orange-500/50 hover:from-orange-500/20 md:col-span-2"
-              >
+                            <button
+                              onClick={() => navigate("/user/requests")}
+                              className="group relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent p-4 text-left transition-all hover:border-orange-500/50 hover:from-orange-500/20 md:col-span-2 interactive-scale"
+                            >
                 <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-500/10 blur-2xl transition-all group-hover:bg-orange-500/20" />
                 <div className="relative flex items-center gap-4">
                   <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-105">

@@ -63,7 +63,7 @@ export function WelcomePage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={() => navigate("/login")}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold flex items-center justify-center gap-3 shadow-xl shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 border border-white/10"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold flex items-center justify-center gap-3 shadow-xl shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 border border-white/10 interactive-scale"
           >
             <span>{t("welcome.cta")}</span>
             <ArrowRight className="w-5 h-5 rtl:-scale-x-100" />
@@ -73,21 +73,21 @@ export function WelcomePage() {
 
       {/* Footer Features (Glassmorphism Cards) */}
       <footer className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto w-full z-10 pt-6">
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
+        <div className="glass-card glass-glow rounded-2xl p-4 flex items-center gap-3 interactive-scale">
           <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 flex-shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <span className="text-sm font-medium text-foreground">{t("welcome.feature1")}</span>
         </div>
 
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
+        <div className="glass-card glass-glow rounded-2xl p-4 flex items-center gap-3 interactive-scale">
           <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 flex-shrink-0">
             <Zap className="w-5 h-5" />
           </div>
           <span className="text-sm font-medium text-foreground">{t("welcome.feature2")}</span>
         </div>
 
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
+        <div className="glass-card glass-glow rounded-2xl p-4 flex items-center gap-3 interactive-scale">
           <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 flex-shrink-0">
             <Wrench className="w-5 h-5" />
           </div>
