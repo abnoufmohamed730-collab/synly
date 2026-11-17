@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 export type AppMode = "user" | "vendor";
+export type Role = "user" | "vendor";
 
 export interface User {
   id: string;
@@ -11,6 +12,22 @@ export interface User {
   operatingHours: string;
   status: "online" | "offline";
   verified: boolean;
+  role: Role;
+  username?: string;
+  phone?: string;
+  carModel?: string;
+  plateNumber?: string;
+  yearOfManufacture?: string;
+  transmission?: string;
+  fuelType?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  phoneNumbers?: string;
+  emergencyLine?: string;
+  paymentMethods?: string[];
+  socialFacebook?: string;
+  socialWhatsApp?: string;
+  socialInstagram?: string;
 }
 
 interface AuthContextType {
@@ -24,14 +41,36 @@ interface AuthContextType {
   updateUser: (data: Partial<User>) => void;
 }
 
-interface RegisterData {
-  businessName: string;
+export interface RegisterData {
+  role: Role;
+  username: string;
   email: string;
   password: string;
-  serviceType: string;
-  commercialRegister: string;
-  location: string;
-  operatingHours: string;
+  phone: string;
+  // User (car owner) fields
+  carModel?: string;
+  plateNumber?: string;
+  yearOfManufacture?: string;
+  transmission?: string;
+  fuelType?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  carLicenseFile?: File | null;
+  personalIdFile?: File | null;
+  // Vendor fields
+  businessName?: string;
+  serviceType?: string;
+  phoneNumbers?: string;
+  emergencyLine?: string;
+  location?: string;
+  coordinates?: { lat: number; lng: number } | null;
+  commercialRegisterFile?: File | null;
+  taxIdFile?: File | null;
+  workingHours?: string;
+  paymentMethods?: string[];
+  socialFacebook?: string;
+  socialWhatsApp?: string;
+  socialInstagram?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         operatingHours: "8:00 AM - 10:00 PM",
         status: "online",
         verified: true,
+        role: "vendor",
       });
       // Default post-login state is Regular User Mode
       setMode("user");
@@ -69,14 +109,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({
       id: "1",
       email: data.email,
-      businessName: data.businessName,
-      serviceType: data.serviceType,
-      location: data.location,
-      operatingHours: data.operatingHours,
+      businessName: data.role === "vendor" ? data.businessName || "Synly Business" : data.username || "Synly User",
+      serviceType: data.serviceType || "",
+      location: data.location || "",
+      operatingHours: data.workingHours || "",
       status: "online",
       verified: false,
+      role: data.role,
+      username: data.username,
+      phone: data.phone,
+      carModel: data.carModel,
+      plateNumber: data.plateNumber,
+      yearOfManufacture: data.yearOfManufacture,
+      transmission: data.transmission,
+      fuelType: data.fuelType,
+      emergencyContactName: data.emergencyContactName,
+      emergencyContactPhone: data.emergencyContactPhone,
+      phoneNumbers: data.phoneNumbers,
+      emergencyLine: data.emergencyLine,
+      paymentMethods: data.paymentMethods,
+      socialFacebook: data.socialFacebook,
+      socialWhatsApp: data.socialWhatsApp,
+      socialInstagram: data.socialInstagram,
     });
-    setMode("user");
+    setMode(data.role);
   }, []);
 
   const logout = useCallback(() => {
