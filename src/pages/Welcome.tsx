@@ -18,9 +18,7 @@ export function WelcomePage() {
       {/* Top Header / Logo & Language Switcher & Theme Toggle */}
       <header className="flex items-center justify-between z-10 w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 border border-white/10">
-            <Car className="w-6 h-6 text-white" />
-          </div>
+          <img src="/logo.png" alt="Synly" className="w-11 h-11 rounded-2xl object-cover" />
           <span className="text-2xl font-black tracking-wider text-foreground">
             SYNLY
           </span>

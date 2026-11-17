@@ -57,9 +57,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-6 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
-            <Car className="h-5 w-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="Synly" className="h-9 w-9 rounded-xl object-cover" />
           <span className="text-xl font-black tracking-wider text-white">SYNLY</span>
         </div>
         <button

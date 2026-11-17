@@ -93,11 +93,9 @@ export function RegisterPage() {
       {/* Top Header with Logo and Language Switcher */}
       <header className="flex items-center justify-between z-10 w-full max-w-6xl mx-auto py-2">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 border border-white/10">
-            <Car className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-2xl font-black tracking-wider text-white">SYNLY</span>
-        </Link>
+                  <img src="/logo.png" alt="Synly" className="h-10 w-10 rounded-xl object-cover" />
+                  <span className="text-2xl font-black tracking-wider text-white">SYNLY</span>
+                </Link>
         <LanguageSwitcher />
       </header>
 

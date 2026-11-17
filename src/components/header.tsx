@@ -44,9 +44,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/25">
-          <Car className="h-5 w-5 text-white" />
-        </div>
+        <img src="/logo.png" alt="Synly" className="h-9 w-9 rounded-xl object-cover" />
 
         <h1 className="text-base font-bold text-white hidden sm:block tracking-wide">
           SYNLY
