@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Upload, X, FileText, AlertCircle } from "lucide-react";
+import { Label } from "./ui/label";
 import { cn } from "../lib/utils";
 
 interface FileUploadProps {

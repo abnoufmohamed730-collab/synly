@@ -13,6 +13,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { FileUpload } from "../components/FileUpload";
 import { LocationPicker } from "../components/LocationPicker";
 import { motion, AnimatePresence } from "framer-motion";
+import { stepVariants } from "../lib/register-constants";
 import {
   Car,
   Store,
@@ -60,12 +61,6 @@ const paymentMethods = [
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1980 + 1 }, (_, i) => String(currentYear - i));
-
-const stepVariants = {
-  initial: { opacity: 0, x: 40, scale: 0.98 },
-  animate: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.35, ease: "easeOut" } },
-  exit: { opacity: 0, x: -40, scale: 0.98, transition: { duration: 0.25, ease: "easeIn" } },
-};
 
 export function RegisterPage() {
   const { t } = useLanguage();
