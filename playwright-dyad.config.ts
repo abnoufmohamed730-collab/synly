@@ -14,7 +14,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.DYAD_TEST_BASE_URL || "http://localhost:32100",
     // Keep actions human-readable when running the live Phase 1 & 2 flow.
-    launchOptions: { headless: false, slowMo: Number(process.env.DYAD_TEST_SLOW_MO) || 1200 },
+    launchOptions: { headless: false, slowMo: Number(process.env.DYAD_TEST_SLOW_MO) || 400 },
     channel: "chrome",
     // Off for a preview run: tracing expects browser-global CDP access, which
     // the preview-only automation broker deliberately rejects. The fixture

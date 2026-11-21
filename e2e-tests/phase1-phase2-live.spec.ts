@@ -1,9 +1,9 @@
-import { mkdir, rename } from "node:fs/promises";
+import { copyFile, mkdir, rename } from "node:fs/promises";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { getCustomerRlsClient, createLiveFixture, cleanupLiveFixture, provisionLiveFixture, type LiveFixture } from "./fixtures/phase1-phase2-live";
 
-test.use({ launchOptions: { headless: false, slowMo: 1200 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
+test.use({ launchOptions: { headless: false, slowMo: 400 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
 
 let fixture: LiveFixture | undefined;
 test.beforeEach(async () => { fixture = await createLiveFixture(); await provisionLiveFixture(fixture); });
@@ -133,7 +133,13 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
   } finally {
     await Promise.allSettled([userContext.close(), vendorContext.close()]);
     const [userPath, vendorPath] = await Promise.all([userVideo?.path(), vendorVideo?.path()]);
-    if (userPath) await rename(userPath, resolve(videoDirectory, "user-flow.webm"));
-    if (vendorPath) await rename(vendorPath, resolve(videoDirectory, "vendor-flow.webm"));
+    const publicVideoDirectory = resolve(process.cwd(), "public", "test-videos");
+    await mkdir(publicVideoDirectory, { recursive: true });
+    for (const [source, filename] of [[userPath, "user-flow.webm"], [vendorPath, "vendor-flow.webm"]] as const) {
+      if (!source) continue;
+      const destination = resolve(videoDirectory, filename);
+      await rename(source, destination);
+      await copyFile(destination, resolve(publicVideoDirectory, filename));
+    }
   }
 });
