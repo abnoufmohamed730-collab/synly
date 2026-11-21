@@ -124,10 +124,10 @@ export function UserProfileForm() {
             <Card className="glass-card h-fit">
               <CardHeader><CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" />My Vehicle</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-2"><Label>Car Model</Label><Input value={form.carModel} onChange={(e) => setForm({ ...form, carModel: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Plate Number</Label><Input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Emergency Contact</Label><Input value={form.emergencyName} onChange={(e) => setForm({ ...form, emergencyName: e.target.value })} placeholder="Contact name" /></div>
-                <div className="space-y-2"><Label>Emergency Phone</Label><Input value={form.emergencyPhone} onChange={(e) => setForm({ ...form, emergencyPhone: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="vehicleModel">Car Model</Label><Input id="vehicleModel" value={form.carModel} onChange={(e) => setForm({ ...form, carModel: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="plateNumber">Plate Number</Label><Input id="plateNumber" value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="emergencyContact">Emergency Contact</Label><Input id="emergencyContact" value={form.emergencyName} onChange={(e) => setForm({ ...form, emergencyName: e.target.value })} placeholder="Contact name" /></div>
+                <div className="space-y-2"><Label htmlFor="emergencyPhone">Emergency Phone</Label><Input id="emergencyPhone" value={form.emergencyPhone} onChange={(e) => setForm({ ...form, emergencyPhone: e.target.value })} /></div>
                 <Button variant="outline" className="w-full" disabled={saving} onClick={saveVehicle}><Save className="h-4 w-4 me-2" />{saving ? "Saving…" : "Save Vehicle"}</Button>
               </CardContent>
             </Card>

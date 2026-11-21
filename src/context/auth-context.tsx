@@ -1,51 +1,40 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-import type { AppMode, AuthContextType, RegisterData, Role, SessionInfo, User } from "./auth-types";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-types";
 import { supabase } from "../integrations/supabase/client";
 import { readStoredMode, writeStoredMode } from "./auth-session";
 import { buildSignupMetadata, fetchProfileSnapshot, mapSnapshotToUser } from "../services/profile-service";
 
-export type { AppMode, AuthContextType, RegisterData, Role, SessionInfo, User } from "./auth-types";
+export type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const EMPTY_SESSIONS: SessionInfo[] = [];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [activeMode, setActiveMode] = useState<AppMode>(readStoredMode());
-  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const hydrateUser = useCallback(async (authUser: { id: string; email?: string } | null, expiresAt?: number | null) => {
+  const hydrateUser = useCallback(async (authUser: { id: string; email?: string } | null): Promise<User | null> => {
     if (!authUser) {
       setUser(null);
-      setSessionExpiresAt(null);
       setActiveMode("user");
       writeStoredMode("user");
       setIsLoading(false);
-      return;
+      return null;
     }
 
     try {
       const snapshot = await fetchProfileSnapshot(authUser.id);
       const nextUser = mapSnapshotToUser(snapshot, authUser);
       setUser(nextUser);
-      setSessionExpiresAt(expiresAt ?? null);
       setActiveMode((current) => {
         const next = nextUser.role === "vendor" ? current : "user";
         writeStoredMode(next);
         return next;
       });
-    } catch {
+      return nextUser;
+    } catch (error) {
       setUser(null);
-      setSessionExpiresAt(expiresAt ?? null);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -53,19 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void hydrateUser(session?.user ?? null, session?.expires_at ? session.expires_at * 1000 : null);
+      void hydrateUser(session?.user ?? null).catch(() => undefined);
     });
     return () => subscription.unsubscribe();
   }, [hydrateUser]);
 
-  const login = useCallback(async (email: string, password: string, _remember = true) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setIsLoading(false);
       throw error;
     }
-  }, []);
+    try {
+      const nextUser = await hydrateUser(data.user);
+      if (!nextUser) throw new Error("Could not load your account profile.");
+      return nextUser;
+    } catch (profileError) {
+      setIsLoading(false);
+      throw profileError;
+    }
+  }, [hydrateUser]);
 
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
@@ -86,28 +83,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return { requiresEmailConfirmation: true };
     }
-    await hydrateUser(result.user, result.session.expires_at ? result.session.expires_at * 1000 : null);
+    await hydrateUser(result.user);
     return { requiresEmailConfirmation: false };
   }, [hydrateUser]);
 
-  const logout = useCallback(async (options?: { allSessions?: boolean }) => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signOut(options?.allSessions ? { scope: "global" } : undefined);
+    const { error } = await supabase.auth.signOut();
     if (error) {
       setIsLoading(false);
       throw error;
     }
     setUser(null);
-    setSessionExpiresAt(null);
     setActiveMode("user");
     writeStoredMode("user");
     setIsLoading(false);
-  }, []);
-
-  const logoutAllSessions = useCallback(async () => logout({ allSessions: true }), [logout]);
-
-  const revokeDeviceSession = useCallback(async (_sessionId: string) => {
-    throw new Error("Remote device session management is not available yet.");
   }, []);
 
   const switchMode = useCallback(async (newMode: AppMode) => {
@@ -155,10 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSession = useCallback(async () => {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) throw error;
-    await hydrateUser(data.session?.user ?? null, data.session?.expires_at ? data.session.expires_at * 1000 : null);
+    await hydrateUser(data.session?.user ?? null);
   }, [hydrateUser]);
-
-  const currentSession = useMemo(() => null, []);
 
   return (
     <AuthContext.Provider value={{
@@ -168,15 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mode: activeMode,
       isAuthenticated: Boolean(user) && !isLoading,
       isLoading,
-      sessionExpiresAt,
-      rememberMe: true,
-      deviceSessions: EMPTY_SESSIONS,
-      currentSession,
       login,
       register,
       logout,
-      logoutAllSessions,
-      revokeDeviceSession,
       switchMode,
       setMode: switchMode,
       updateUserProfile,

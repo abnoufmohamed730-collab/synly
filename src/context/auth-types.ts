@@ -1,19 +1,6 @@
 export type AppMode = "user" | "vendor";
 export type Role = "user" | "vendor";
 
-export interface SessionInfo {
-  id: string;
-  deviceName: string;
-  deviceType: "mobile" | "desktop" | "tablet";
-  browser: string;
-  os: string;
-  userAgent: string;
-  lastActiveAt: string;
-  ipAddress: string;
-  location: string;
-  isCurrent: boolean;
-}
-
 export interface User {
   id: string;
   email: string;
@@ -40,7 +27,6 @@ export interface User {
   socialFacebook?: string;
   socialWhatsApp?: string;
   socialInstagram?: string;
-  deviceSessions?: SessionInfo[];
 }
 
 export interface RegisterData {
@@ -81,15 +67,9 @@ export interface AuthContextType {
   mode: AppMode;
   isAuthenticated: boolean;
   isLoading: boolean;
-  sessionExpiresAt: number | null;
-  rememberMe: boolean;
-  deviceSessions: SessionInfo[];
-  currentSession: SessionInfo | null;
-  login: (email: string, password: string, remember?: boolean) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: RegisterData) => Promise<{ requiresEmailConfirmation: boolean }>;
-  logout: (options?: { allSessions?: boolean }) => Promise<void>;
-  logoutAllSessions: () => Promise<void>;
-  revokeDeviceSession: (sessionId: string) => Promise<void>;
+  logout: () => Promise<void>;
   switchMode: (newMode: AppMode) => Promise<void>;
   setMode: (newMode: AppMode) => Promise<void>;
   updateUserProfile: (data: Partial<User>) => Promise<void>;

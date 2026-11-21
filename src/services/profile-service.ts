@@ -1,5 +1,5 @@
 import { supabase } from "../integrations/supabase/client";
-import type { AppMode, RegisterData, Role, User } from "../context/auth-types";
+import type { RegisterData, Role, User } from "../context/auth-types";
 
 export interface ProfileSnapshot {
   profile: Record<string, any>;
@@ -79,7 +79,6 @@ export function mapSnapshotToUser(snapshot: ProfileSnapshot, authUser: { id: str
     socialFacebook: snapshot.socialLinks.find((item) => item.platform === "facebook")?.url ?? "",
     socialWhatsApp: snapshot.socialLinks.find((item) => item.platform === "whatsapp")?.url ?? "",
     socialInstagram: snapshot.socialLinks.find((item) => item.platform === "instagram")?.url ?? "",
-    deviceSessions: [],
   };
 }
 
@@ -183,5 +182,3 @@ export async function saveCenterHours(ownerId: string, hoursText: string) {
     .eq("service_center_id", center.id);
   if (error) throw new Error(error.message);
 }
-
-export type { AppMode };

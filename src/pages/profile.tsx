@@ -155,7 +155,7 @@ function VendorProfile() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Business Profile</h1>
-        <p className="text-muted-foreground">Manage your service center information and team</p>
+        <p className="text-muted-foreground">{loading ? "Loading your business profile…" : "Manage your service center information and team"}</p>
       </div>
 
       <Tabs defaultValue="business" className="space-y-4">
@@ -225,11 +225,12 @@ function VendorProfile() {
               </div>
 
               <Button
+                disabled={loading || saving}
                 onClick={handleSave}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {saving ? "Saving…" : "Save Changes"}
               </Button>
             </CardContent>
           </Card>
@@ -244,8 +245,8 @@ function VendorProfile() {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Verified Business</p>
-                  <p className="text-sm text-muted-foreground">Your business has been verified by Synly</p>
+                  <p className="font-medium text-foreground">{user?.verified ? "Verified Business" : "Verification pending"}</p>
+                  <p className="text-sm text-muted-foreground">{user?.verified ? "Your business has been verified by Synly" : "Your center is awaiting review by Synly"}</p>
                 </div>
                 <Badge className={`ml-auto border ${user?.verified ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-500/20 text-amber-300 border-amber-500/30"}`} variant="outline">
                   {user?.verified ? "Verified" : "Pending review"}
@@ -322,11 +323,12 @@ function VendorProfile() {
                 <p className="text-xs text-muted-foreground">You'll receive alerts from customers within {radius} km.</p>
               </div>
               <Button
-                onClick={() => toast.success("Alert radius updated")}
+                disabled={loading || saving}
+                onClick={savePreferences}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Radius
+                {saving ? "Saving…" : "Save Radius"}
               </Button>
             </CardContent>
           </Card>
@@ -349,14 +351,15 @@ function VendorProfile() {
                   <p className="text-sm font-medium text-foreground">Email Notifications</p>
                   <p className="text-xs text-muted-foreground">Get updates via email</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch checked={notifications} onCheckedChange={setNotifications} />
               </div>
               <Button
-                onClick={() => toast.success("Preferences saved")}
+                disabled={loading || saving}
+                onClick={savePreferences}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Preferences
+                {saving ? "Saving…" : "Save Preferences"}
               </Button>
             </CardContent>
           </Card>

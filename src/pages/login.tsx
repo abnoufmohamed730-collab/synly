@@ -23,7 +23,6 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,10 +37,10 @@ export function LoginPage() {
     setError("");
 
     try {
-      await login(email, password, remember);
+      const signedInUser = await login(email, password);
       toast.success(t("auth.sessionActive"));
 
-      const defaultTarget = role === "vendor" ? "/dashboard" : "/user";
+      const defaultTarget = signedInUser.role === "vendor" ? "/dashboard" : "/user";
       const destination = location.state?.from?.pathname || defaultTarget;
 
       navigate(destination, { replace: true });
@@ -203,21 +202,6 @@ export function LoginPage() {
                         {t("login.forgotPassword")}
                       </Link>
                     </div>
-                  </div>
-
-                  {/* Uber/inDrive style "Keep me signed in" toggle */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex items-start gap-3 transition-colors hover:bg-white/10">
-                    <input
-                      id="remember"
-                      type="checkbox"
-                      checked={remember}
-                      onChange={(e) => setRemember(e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-white/30 bg-slate-900 text-blue-500 focus:ring-blue-500/40 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <label htmlFor="remember" className="flex-1 cursor-pointer select-none">
-                      <p className="text-xs font-semibold text-white">{t("auth.keepMeSignedIn")}</p>
-                      <p className="text-[11px] text-slate-400">{t("auth.keepMeSignedInDesc")}</p>
-                    </label>
                   </div>
 
                   <Button

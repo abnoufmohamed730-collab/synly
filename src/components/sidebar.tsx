@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
 import {
@@ -13,7 +12,6 @@ import {
   MapPin,
   ClipboardList,
   Home,
-  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
@@ -25,11 +23,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean; onClose: () => void; forceDrawer?: boolean }) {
-  const { user, logout, logoutAllSessions, mode, setMode, sessionExpiresAt, deviceSessions } = useAuth();
+  const { user, logout, mode, setMode } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const isVendor = mode === "vendor";
-  const [showSessionInfo, setShowSessionInfo] = useState(false);
 
   const navItems = isVendor
     ? [
@@ -117,7 +114,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
 
       {/* Mode switcher & User info */}
       <div className="border-t border-white/10 p-4 space-y-3 bg-black/20">
-        <button
+        {user?.role === "vendor" && <button
           onClick={handleSwitchMode}
           className={cn(
             "w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200 border shadow-lg group",
@@ -140,7 +137,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
               {isVendor ? t("common.userMode") : t("common.vendorMode")}
             </p>
           </div>
-        </button>
+        </button>}
 
         {/* User Card */}
         <div className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-3">
