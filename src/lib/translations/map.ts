@@ -34,6 +34,13 @@ const map: TranslationModule = {
     "map.lockoutDesc": "Keys locked inside car",
     "map.mechanical": "Mechanical",
     "map.mechanicalDesc": "On-site repair service",
+    "map.liveFollow": "Live Follow",
+    "map.liveFollowStop": "Stop Live Follow",
+    "map.trackingActive": "Live tracking active",
+    "map.trackingPaused": "Live tracking paused",
+    "map.locating": "Locating you…",
+    "map.gpsDenied": "Location access denied. Please enable GPS.",
+    "map.myLocation": "My Location",
   },
   ar: {
     // User Map Dashboard
@@ -68,6 +75,13 @@ const map: TranslationModule = {
     "map.lockoutDesc": "المفاتيح داخل السيارة",
     "map.mechanical": "أعطال ميكانيكية",
     "map.mechanicalDesc": "خدمة إصلاح في الموقع",
+    "map.liveFollow": "تتبع مباشر",
+    "map.liveFollowStop": "إيقاف التتبع المباشر",
+    "map.trackingActive": "التتبع المباشر مفعّل",
+    "map.trackingPaused": "تم إيقاف التتبع مؤقتاً",
+    "map.locating": "جارٍ تحديد موقعك…",
+    "map.gpsDenied": "تم رفض الوصول للموقع. يرجى تفعيل الـ GPS.",
+    "map.myLocation": "موقعي",
   },
 };
 

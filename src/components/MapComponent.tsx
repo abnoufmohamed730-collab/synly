@@ -1,39 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
+  Circle,
   Popup,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Navigation } from "lucide-react";
+import { Navigation, Radar, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { useLanguage } from "../context/language-context";
 
-// Fix default marker icons in Leaflet with Vite
-const customIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// Blue pulsing marker icon for user's location (Google Maps style)
-const bluePulseIcon = new L.Icon({
-  iconUrl:
-    "data:image/svg+xml;base64," +
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007bff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
-    "<circle cx='12' cy='12' r='8' fill='%23007bff' fill-opacity='0.2' stroke='%23007bff' stroke-width='2'/>" +
-    "<circle cx='12' cy='12' r='4' fill='%23007bff'/>" +
-    "<circle cx='12' cy='12' r='1' fill='%23007bff' fill-opacity='0.6'/>" +
-    "</svg>",
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12],
-});
+interface LivePosition {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  heading?: number;
+  speed?: number;
+}
 
 interface MapComponentProps {
   center?: [number, number];
@@ -42,67 +28,197 @@ interface MapComponentProps {
   onMapDragStart?: () => void;
 }
 
-// Component to handle geolocation and recenter button
-function LocationMarker({ onLocate }: { onLocate?: () => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
+const createLiveDotIcon = (heading?: number): L.DivIcon =>
+  L.divIcon({
+    className: "synly-live-dot",
+    html: `
+      <div style="position:relative;width:24px;height:24px;${
+        heading ? `transform:rotate(${heading}deg);transform-origin:center;` : ""
+      }">
+        <div class="absolute inset-0 rounded-full bg-blue-500/30 animate-ping"></div>
+        <div style="position:absolute;inset:0;border-radius:9999px;background:#3b82f6;border:2px solid #ffffff;box-shadow:0 0 14px rgba(59,130,246,0.65);"></div>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+
+// Component to handle geolocation, live follow, and recenter button
+function LocationMarker({
+  onLocate,
+  onMapDragStart,
+}: {
+  onLocate?: () => void;
+  onMapDragStart?: () => void;
+}) {
   const map = useMap();
+  const { t } = useLanguage();
+  const [position, setPosition] = useState<LivePosition | null>(null);
+  const [status, setStatus] = useState<"idle" | "locating" | "active" | "error">("idle");
+  const [liveFollow, setLiveFollow] = useState(false);
+  const liveFollowRef = useRef(false);
+  const onLocateRef = useRef(onLocate);
+  const onMapDragStartRef = useRef(onMapDragStart);
 
-  const handleGetLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (coords) => {
-          const { latitude, longitude } = coords.coords;
-          const newPos: [number, number] = [latitude, longitude];
-          setPosition(newPos);
-          map.flyTo(newPos, 16, { animate: true });
-          onLocate?.();
-        },
-        (error) => {
-          console.error("Error getting location: ", error);
-          alert("تعذر الحصول على موقعك الحالي. تأكد من تفعيل الـ GPS في متصفحك.");
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      alert("خاصية تحديد الموقع غير مدعومة في متصفحك.");
-    }
-  };
-
-  // Get location automatically when page opens
   useEffect(() => {
-    handleGetLocation();
-  }, [map]);
+    onLocateRef.current = onLocate;
+  }, [onLocate]);
 
-  return (
-    <div className="absolute bottom-24 right-4 z-[1000]">
-      <button
-        onClick={handleGetLocation}
-        className="w-12 h-12 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-blue-400 flex items-center justify-center shadow-lg hover:bg-slate-800 transition-all"
-        title="موقعي الحالي"
-      >
-        <Navigation className="w-5 h-5" />
-      </button>
-    </div>
-  );
-}
+  useEffect(() => {
+    onMapDragStartRef.current = onMapDragStart;
+  }, [onMapDragStart]);
 
-// Component to handle map drag events (must be inside MapContainer)
-function MapEvents({ onMapDragStart }: { onMapDragStart?: () => void }) {
-  const map = useMap();
+  useEffect(() => {
+    liveFollowRef.current = liveFollow;
+  }, [liveFollow]);
 
+  // Real-time street-level movement tracking via watchPosition
+  useEffect(() => {
+    if (!("geolocation" in navigator)) {
+      setStatus("error");
+      toast.error(t("map.gpsDenied"));
+      return;
+    }
+    setStatus("locating");
+    const watchId = navigator.geolocation.watchPosition(
+      (coords) => {
+        const { latitude, longitude, accuracy, heading, speed } = coords.coords;
+        const next: LivePosition = { lat: latitude, lng: longitude, accuracy, heading, speed };
+        setPosition(next);
+        setStatus("active");
+        if (liveFollowRef.current) {
+          map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
+        }
+      },
+      (error) => {
+        setStatus("error");
+        toast.error(t("map.gpsDenied"));
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [map, t]);
+
+  // Pause live follow when the user manually drags the map
   useEffect(() => {
     const handleDragStart = () => {
-      onMapDragStart?.();
+      setLiveFollow(false);
+      liveFollowRef.current = false;
+      onMapDragStartRef.current?.();
     };
-
     map.on("dragstart", handleDragStart);
-
     return () => {
       map.off("dragstart", handleDragStart);
     };
-  }, [map, onMapDragStart]);
+  }, [map]);
 
-  return null;
+  const handleGetLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setStatus("error");
+      toast.error(t("map.gpsDenied"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (coords) => {
+        const { latitude, longitude, accuracy, heading, speed } = coords.coords;
+        const next: LivePosition = { lat: latitude, lng: longitude, accuracy, heading, speed };
+        setPosition(next);
+        setStatus("active");
+        map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
+        onLocateRef.current?.();
+      },
+      (error) => {
+        setStatus("error");
+        toast.error(t("map.gpsDenied"));
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+  };
+
+  const toggleLiveFollow = () => {
+    const next = !liveFollow;
+    setLiveFollow(next);
+    liveFollowRef.current = next;
+    if (next && position) {
+      map.flyTo([position.lat, position.lng], map.getZoom(), { animate: true });
+    }
+  };
+
+  const icon = useMemo(() => createLiveDotIcon(position?.heading), [position?.heading]);
+
+  const statusContent =
+    status === "error"
+      ? t("map.gpsDenied")
+      : status === "locating"
+        ? t("map.locating")
+        : status === "active"
+          ? liveFollow
+            ? t("map.trackingActive")
+            : t("map.trackingPaused")
+          : null;
+
+  return (
+    <>
+      {position && (
+        <Marker position={[position.lat, position.lng]} icon={icon}>
+          <Popup>{t("map.myLocation")}</Popup>
+        </Marker>
+      )}
+
+      {position && (
+        <Circle
+          center={[position.lat, position.lng]}
+          radius={position.accuracy}
+          pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.12 }}
+        />
+      )}
+
+      <div className="absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-2">
+        <button
+          onClick={handleGetLocation}
+          className="w-12 h-12 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-blue-400 flex items-center justify-center shadow-lg hover:bg-slate-800 transition-all"
+          title="موقعي الحالي"
+        >
+          <Navigation className="w-5 h-5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleLiveFollow}
+          className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center shadow-lg transition-all interactive-scale ${
+            liveFollow
+              ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
+              : "bg-slate-900/80 border-white/10 text-slate-400 hover:bg-slate-800"
+          }`}
+          title={liveFollow ? t("map.liveFollowStop") : t("map.liveFollow")}
+          aria-label={liveFollow ? t("map.liveFollowStop") : t("map.liveFollow")}
+        >
+          <Radar className="w-5 h-5" />
+        </button>
+
+        {statusContent && (
+          <div
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur-xl ${
+              status === "error"
+                ? "bg-red-500/10 border-red-500/30 text-red-400"
+                : status === "locating"
+                  ? "bg-slate-900/80 border-white/10 text-slate-300"
+                  : liveFollow
+                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                    : "bg-slate-900/80 border-white/10 text-slate-300"
+            }`}
+          >
+            {status === "error" ? (
+              <AlertCircle className="h-3 w-3" />
+            ) : (
+              <Radar className="h-3 w-3" />
+            )}
+            <span>{statusContent}</span>
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
 
 export function MapComponent({
@@ -125,13 +241,7 @@ export function MapComponent({
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapEvents onMapDragStart={onMapDragStart} />
-        <LocationMarker onLocate={onLocate} />
-        <Marker position={center} icon={bluePulseIcon}>
-          <Popup>
-            موقعك الحالي <br /> أنت هنا.
-          </Popup>
-        </Marker>
+        <LocationMarker onLocate={onLocate} onMapDragStart={onMapDragStart} />
       </MapContainer>
     </div>
   );
