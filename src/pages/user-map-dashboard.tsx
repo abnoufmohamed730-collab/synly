@@ -108,12 +108,17 @@ export function UserMapDashboardPage() {
       }
     };
     void refreshActiveRequest();
-    const unsubscribe = subscribeToCustomerRequestChanges(user.id, () => void refreshActiveRequest());
-    return () => {
-      active = false;
-      unsubscribe();
-    };
+    return () => { active = false; };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user || !activeRequest) return;
+    return subscribeToCustomerRequestChanges(user.id, [activeRequest.id], () => {
+      void getCustomerRequests(user.id).then((requests) => {
+        setActiveRequest(requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null);
+      }).catch((error: Error) => toast.error(error.message));
+    });
+  }, [user?.id, activeRequest?.id]);
 
   const handleLocate = () => {
     setSheetExpanded(false);

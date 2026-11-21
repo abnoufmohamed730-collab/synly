@@ -166,20 +166,20 @@ export async function transitionServiceRequest(requestId: string, status: "in_pr
   return unwrap<string>(supabase.rpc("transition_service_request", { p_request_id: requestId, p_to_status: status }));
 }
 
-export function subscribeToCustomerRequestChanges(userId: string, onChange: () => void) {
+export function subscribeToCustomerRequestChanges(userId: string, requestIds: string[], onChange: () => void) {
   const channel = supabase.channel(`customer-requests:${userId}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "service_requests", filter: `customer_id=eq.${userId}` }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "request_offers" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "request_status_events" }, onChange)
-    .subscribe();
-  return () => { void supabase.removeChannel(channel); };
+    .on("postgres_changes", { event: "*", schema: "public", table: "service_requests", filter: `customer_id=eq.${userId}` }, onChange);
+  requestIds.forEach((requestId) => {
+    channel.on("postgres_changes", { event: "*", schema: "public", table: "request_offers", filter: `request_id=eq.${requestId}` }, onChange);
+  });
+  const subscription = channel.subscribe();
+  return () => { void supabase.removeChannel(subscription); };
 }
 
 export function subscribeToCenterRequestChanges(centerId: string, onChange: () => void) {
   const channel = supabase.channel(`service-center-requests:${centerId}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "service_requests" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "request_offers", filter: `service_center_id=eq.${centerId}` }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "request_status_events" }, onChange)
     .subscribe();
   return () => { void supabase.removeChannel(channel); };
 }

@@ -94,14 +94,15 @@ export function UserRequestsPage() {
       }
     };
     void load();
-    const unsubscribe = subscribeToCustomerRequestChanges(user.id, () => {
+    return () => { active = false; };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeToCustomerRequestChanges(user.id, requests.map((request) => request.id), () => {
       void refreshRequests().catch((error: Error) => toast.error(error.message));
     });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [user?.id, refreshRequests]);
+  }, [user?.id, requests, refreshRequests]);
 
   useEffect(() => {
     setForm((current) => ({ ...current, requestType: preferredType }));
