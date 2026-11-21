@@ -20,6 +20,8 @@ const auth: TranslationModule = {
     "login.register": "Register here",
     "login.emailPlaceholder": "your@email.com",
     "login.passwordPlaceholder": "Your password",
+    "login.showPassword": "Show password",
+    "login.hidePassword": "Hide password",
 
     // Register - shared
     "register.heroTitle": "Join the Synly Network",
@@ -205,6 +207,8 @@ const auth: TranslationModule = {
     "login.register": "سجل هنا",
     "login.emailPlaceholder": "بريدك@الالكتروني.com",
     "login.passwordPlaceholder": "كلمة المرور الخاصة بك",
+    "login.showPassword": "إظهار كلمة المرور",
+    "login.hidePassword": "إخفاء كلمة المرور",
 
     // Register - shared
     "register.heroTitle": "انضم إلى شبكة Synly",

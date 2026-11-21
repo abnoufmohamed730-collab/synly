@@ -17,12 +17,15 @@ import {
   ShieldCheck,
   Zap,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -226,13 +229,22 @@ export function LoginPage() {
                       <Lock className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                       <Input
                         id="password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder={t("login.passwordPlaceholder")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="glass-input h-12 ps-10 pe-4 text-white"
+                        className="glass-input h-12 ps-10 pe-12 text-white"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((visible) => !visible)}
+                        className="absolute end-3.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                        aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
+                        aria-pressed={showPassword}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
