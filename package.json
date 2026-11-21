@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "playwright test --config playwright-dyad.config.ts"
+    "test": "playwright test --config playwright-dyad.config.ts",
+    "test:e2e:live": "playwright test e2e-tests/phase1-phase2-live.spec.ts --headed"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
