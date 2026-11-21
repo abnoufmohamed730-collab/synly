@@ -12,6 +12,7 @@ import L from "leaflet";
 import { Navigation, Radar, AlertCircle, Plus, Minus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/language-context";
+import type { NearbyCenter } from "../services/request-service";
 
 interface LivePosition {
   lat: number;
@@ -26,7 +27,16 @@ interface MapComponentProps {
   zoom?: number;
   onLocate?: () => void;
   onMapDragStart?: () => void;
+  onUserLocation?: (position: { lat: number; lng: number }) => void;
+  centers?: NearbyCenter[];
 }
+
+const createCenterIcon = () => L.divIcon({
+  className: "synly-center-marker",
+  html: '<div style="width:32px;height:32px;border-radius:12px;background:#f97316;border:2px solid #fff;box-shadow:0 4px 16px rgba(249,115,22,.55);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px">S</div>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
 
 const createLiveDotIcon = (heading?: number): L.DivIcon =>
   L.divIcon({
@@ -104,9 +114,11 @@ function PermissionCard({
 function LocationMarker({
   onLocate,
   onMapDragStart,
+  onUserLocation,
 }: {
   onLocate?: () => void;
   onMapDragStart?: () => void;
+  onUserLocation?: (position: { lat: number; lng: number }) => void;
 }) {
   const map = useMap();
   const { t } = useLanguage();
@@ -118,6 +130,7 @@ function LocationMarker({
   const liveFollowRef = useRef(false);
   const onLocateRef = useRef(onLocate);
   const onMapDragStartRef = useRef(onMapDragStart);
+  const onUserLocationRef = useRef(onUserLocation);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -127,6 +140,10 @@ function LocationMarker({
   useEffect(() => {
     onMapDragStartRef.current = onMapDragStart;
   }, [onMapDragStart]);
+
+  useEffect(() => {
+    onUserLocationRef.current = onUserLocation;
+  }, [onUserLocation]);
 
   useEffect(() => {
     liveFollowRef.current = liveFollow;
@@ -197,6 +214,7 @@ function LocationMarker({
         setLiveFollow(true);
         liveFollowRef.current = true;
         map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
+        onUserLocationRef.current?.({ lat: latitude, lng: longitude });
         onLocateRef.current?.();
       },
       (error) => {
@@ -343,10 +361,12 @@ function LocationMarker({
 }
 
 export function MapComponent({
-  center = [30.0444, 31.2357],
-  zoom = 15,
+  center = [0, 0],
+  zoom = 3,
   onLocate,
   onMapDragStart,
+  onUserLocation,
+  centers = [],
 }: MapComponentProps) {
   return (
     <div className="w-full h-full relative z-0">
@@ -364,7 +384,22 @@ export function MapComponent({
           attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker onLocate={onLocate} onMapDragStart={onMapDragStart} />
+        <LocationMarker onLocate={onLocate} onMapDragStart={onMapDragStart} onUserLocation={onUserLocation} />
+        {centers.map((serviceCenter) => (
+          <Marker
+            key={serviceCenter.id}
+            position={[serviceCenter.latitude, serviceCenter.longitude]}
+            icon={createCenterIcon()}
+          >
+            <Popup>
+              <div className="min-w-36">
+                <strong>{serviceCenter.name}</strong>
+                <p>{serviceCenter.service_type}</p>
+                <p>{serviceCenter.distance_km.toFixed(1)} km · {serviceCenter.open_now ? "Open now" : "Closed"}</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );

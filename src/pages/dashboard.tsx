@@ -1,231 +1,138 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
-import {
-  mockRequests,
-  urgencyLabels,
-  urgencyColors,
-  statusLabels,
-  statusColors,
-} from "../lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
-import {
-  Users,
-  CheckCircle,
-  DollarSign,
-  Wifi,
-  WifiOff,
-  MapPin,
-  Clock,
-  Car,
-  AlertTriangle,
-  TrendingUp,
-} from "lucide-react";
+import { Users, CheckCircle, DollarSign, Wifi, WifiOff, Clock, Car, AlertTriangle, TrendingUp, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { getOwnCenter, getVendorOffers, getVendorRequests, subscribeToCenterRequestChanges, type RequestOffer, type ServiceRequest } from "../services/request-service";
 
 export function DashboardPage() {
   const { user, updateUser } = useAuth();
-  const [status, setStatus] = useState(user?.status || "online");
+  const navigate = useNavigate();
+  const [centerId, setCenterId] = useState<string | null>(null);
+  const [status, setStatus] = useState(user?.status || "offline");
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [offers, setOffers] = useState<RequestOffer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeRequests = mockRequests.filter(
-    (r) => r.status === "pending" || r.status === "offered"
-  ).length;
-  const completedJobs = mockRequests.filter((r) => r.status === "completed").length;
-  const totalEarnings = mockRequests
-    .filter((r) => r.status === "completed")
-    .reduce((sum, r) => sum + (r.offerPrice || 0), 0);
+  const refresh = useCallback(async (currentCenterId?: string | null) => {
+    if (!user) return;
+    const center = currentCenterId ? null : await getOwnCenter(user.id);
+    const id = currentCenterId ?? center?.id ?? null;
+    if (!id) {
+      setCenterId(null);
+      setRequests([]);
+      setOffers([]);
+      setLoading(false);
+      return;
+    }
+    if (center) {
+      setCenterId(center.id);
+      setStatus(center.is_online ? "online" : "offline");
+    }
+    const [nextRequests, nextOffers] = await Promise.all([getVendorRequests(), getVendorOffers(id)]);
+    setRequests(nextRequests);
+    setOffers(nextOffers);
+    setLoading(false);
+  }, [user?.id]);
 
-  const handleStatusChange = (checked: boolean) => {
-    const newStatus = checked ? "online" : "offline";
-    setStatus(newStatus);
-    updateUser({ status: newStatus });
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const center = await getOwnCenter(user.id);
+        if (!active) return;
+        if (!center) {
+          setLoading(false);
+          return;
+        }
+        setCenterId(center.id);
+        setStatus(center.is_online ? "online" : "offline");
+        const [nextRequests, nextOffers] = await Promise.all([getVendorRequests(), getVendorOffers(center.id)]);
+        if (active) {
+          setRequests(nextRequests);
+          setOffers(nextOffers);
+        }
+      } catch (error) {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load your dashboard.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!centerId) return;
+    return subscribeToCenterRequestChanges(centerId, () => {
+      void refresh(centerId).catch((error: Error) => toast.error(error.message));
+    });
+  }, [centerId, refresh]);
+
+  const activeRequests = requests.filter((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status));
+  const incomingRequests = requests.filter((request) => ["pending", "offered"].includes(request.status));
+  const completedRequests = requests.filter((request) => request.status === "completed");
+  const completedOfferIds = new Set(completedRequests.map((request) => request.accepted_offer_id).filter(Boolean));
+  const totalEarnings = useMemo(() => offers.filter((offer) => completedOfferIds.has(offer.id)).reduce((sum, offer) => sum + Number(offer.price), 0), [offers, requests]);
+
+  const handleStatusChange = async (checked: boolean) => {
+    if (!user) return;
+    const nextStatus = checked ? "online" : "offline";
+    try {
+      await updateUser({ status: nextStatus });
+      setStatus(nextStatus);
+      toast.success(checked ? "Your center is now online." : "Your center is now offline.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update availability.");
+    }
   };
-
-  const pendingRequests = mockRequests.filter(
-    (r) => r.status === "pending" || r.status === "offered"
-  );
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user?.businessName?.split(" ")[0] || "Vendor"}! Here's your overview.
-          </p>
+          <p className="text-muted-foreground">Welcome back, {user?.businessName?.split(" ")[0] || "Vendor"}! Here’s your live overview.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-lg bg-accent px-3 py-2">
-            <Label className="text-sm font-medium text-foreground">
-              {status === "online" ? <Wifi className="h-4 w-4 text-green-500" /> : <WifiOff className="h-4 w-4 text-muted-foreground" />}
-            </Label>
-            <Switch
-              checked={status === "online"}
-              onCheckedChange={handleStatusChange}
-              aria-label="Toggle online status"
-            />
-            <span className="text-sm font-medium text-foreground">
-              {status === "online" ? "Online" : "Offline"}
-            </span>
-          </div>
+        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+          {status === "online" ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-slate-400" />}
+          <Label htmlFor="center-online" className="text-sm font-medium text-foreground">{status === "online" ? "Online" : "Offline"}</Label>
+          <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} aria-label="Toggle online status" />
         </div>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="glass-card glass-glow interactive-scale">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Requests</CardTitle>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
-              <Users className="h-5 w-5 text-orange-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{activeRequests}</div>
-            <p className="text-xs text-muted-foreground">Today</p>
-          </CardContent>
-        </Card>
+      {!centerId && !loading && <Card className="glass-card border-amber-500/20"><CardContent className="p-4 text-sm text-amber-200">No service center is linked to this vendor profile yet.</CardContent></Card>}
 
-        <Card className="glass-card glass-glow interactive-scale">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed Jobs</CardTitle>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{completedJobs}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card glass-glow interactive-scale">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-              <DollarSign className="h-5 w-5 text-amber-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">EGP {totalEarnings.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card glass-glow interactive-scale">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  status === "online" ? "bg-green-500" : "bg-gray-500"
-                }`}
-              />
-              <span className="text-lg font-bold text-foreground capitalize">{status}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Ready to receive requests</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Active Requests" value={loading ? "—" : activeRequests.length} caption="Assigned or awaiting offers" icon={<Users className="h-5 w-5 text-orange-400" />} />
+        <MetricCard title="Completed Jobs" value={loading ? "—" : completedRequests.length} caption="All completed jobs" icon={<CheckCircle className="h-5 w-5 text-green-400" />} />
+        <MetricCard title="Total Earnings" value={loading ? "—" : `EGP ${totalEarnings.toLocaleString()}`} caption="From completed accepted offers" icon={<DollarSign className="h-5 w-5 text-amber-400" />} />
+        <MetricCard title="Availability" value={status} caption="Controls incoming request eligibility" icon={<TrendingUp className="h-5 w-5 text-blue-400" />} />
       </div>
 
-      {/* Live Feed / Incoming Requests */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-foreground">Live Request Feed</h2>
-          <Badge variant="secondary" className="gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            Live
-          </Badge>
+        <div className="flex items-center justify-between gap-3">
+          <div><h2 className="text-xl font-bold text-foreground">Live Request Feed</h2><p className="text-sm text-muted-foreground">Requests in your approved service area</p></div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/requests")}>Open queue<ArrowRight className="ms-2 h-4 w-4" /></Button>
         </div>
-
-        {pendingRequests.length === 0 ? (
-          <Card className="glass-card glass-glow">
-            <CardContent className="py-12 text-center">
-              <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No incoming requests</h3>
-              <p className="text-muted-foreground">
-                You're all caught up! New requests will appear here in real-time.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {pendingRequests.map((request) => (
-              <RequestCard key={request.id} request={request} />
-            ))}
-          </div>
-        )}
+        {loading ? <div className="glass-card rounded-2xl p-8 text-center text-muted-foreground">Loading incoming requests…</div> : incomingRequests.length === 0 ? (
+          <Card className="glass-card"><CardContent className="py-12 text-center"><Car className="mx-auto mb-4 h-12 w-12 text-muted-foreground" /><h3 className="mb-2 text-lg font-medium text-foreground">No incoming requests</h3><p className="text-muted-foreground">New eligible requests will appear here in real time while your center is online.</p></CardContent></Card>
+        ) : <div className="space-y-3">{incomingRequests.slice(0, 5).map((request) => <RequestFeedCard key={request.id} request={request} onOpen={() => navigate("/dashboard/requests")} />)}</div>}
       </div>
     </div>
   );
 }
 
-function RequestCard({ request }: { request: typeof mockRequests[0] }) {
-  return (
-    <Card className="glass-card glass-glow hover:border-primary/30 transition-colors interactive-scale">
-      <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          {/* Car Info */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <Car className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">{request.userName}</p>
-              <p className="text-sm text-muted-foreground">
-                {request.carModel} {request.carYear}
-              </p>
-            </div>
-          </div>
+function MetricCard({ title, value, caption, icon }: { title: string; value: string | number; caption: string; icon: React.ReactNode }) {
+  return <Card className="glass-card glass-glow"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">{icon}</div></CardHeader><CardContent><div className="text-2xl font-bold capitalize text-foreground">{value}</div><p className="text-xs text-muted-foreground">{caption}</p></CardContent></Card>;
+}
 
-          {/* Issue Description */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-foreground line-clamp-2">{request.issueDescription}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <Badge variant="secondary" className="gap-1">
-                <MapPin className="h-3 w-3" />
-                {request.distance}
-              </Badge>
-              <Badge variant="secondary" className="gap-1">
-                <Clock className="h-3 w-3" />
-                {new Date(request.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </Badge>
-              <Badge
-                className={urgencyColors[request.urgency]}
-                variant="outline"
-              >
-                <AlertTriangle className="h-3 w-3" />
-                {urgencyLabels[request.urgency]}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:inline-flex interactive-scale"
-            >
-              View Details
-            </Button>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 interactive-scale"
-            >
-              Send Offer
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+function RequestFeedCard({ request, onOpen }: { request: ServiceRequest; onOpen: () => void }) {
+  return <Card className="glass-card glass-glow"><CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400"><Car className="h-5 w-5" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold capitalize text-foreground">{request.request_type.replace(/_/g, " ")}</p><Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-300">{request.urgency}</Badge></div><p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{request.description}</p><div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<span className="px-1">·</span><AlertTriangle className="h-3 w-3" />{request.status.replace(/_/g, " ")}</div></div><Button variant="outline" size="sm" onClick={onOpen}>View and respond</Button></CardContent></Card>;
 }

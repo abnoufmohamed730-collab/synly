@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/language-context";
 import { useAuth } from "../context/auth-context";
@@ -8,6 +8,8 @@ import { MapComponent } from "../components/MapComponent";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { getCustomerRequests, searchNearbyCenters, subscribeToCustomerRequestChanges, type NearbyCenter, type ServiceRequest } from "../services/request-service";
 import {
   Menu,
   Car,
@@ -28,6 +30,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { toast } from "sonner";
 
 const quickActions = [
   { key: "map.towing", icon: Car, color: "bg-blue-500/10 text-blue-400" },
@@ -59,7 +62,58 @@ export function UserMapDashboardPage() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [serviceType, setServiceType] = useState("");
+  const [openNow, setOpenNow] = useState("all");
   const [sheetExpanded, setSheetExpanded] = useState(true);
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [centers, setCenters] = useState<NearbyCenter[]>([]);
+  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!position) return;
+    let active = true;
+    setNearbyLoading(true);
+    const timer = window.setTimeout(() => {
+      searchNearbyCenters({
+        latitude: position.lat,
+        longitude: position.lng,
+        radiusKm: 20,
+        serviceType,
+        openNow: openNow === "all" ? null : openNow === "open",
+        query: search,
+      }).then((results) => {
+        if (active) setCenters(results);
+      }).catch(() => {
+        if (active) toast.error("Nearby service centers could not be loaded.");
+      }).finally(() => {
+        if (active) setNearbyLoading(false);
+      });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [position, serviceType, openNow, search]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const refreshActiveRequest = async () => {
+      try {
+        const requests = await getCustomerRequests(user.id);
+        if (active) setActiveRequest(requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null);
+      } catch {
+        if (active) toast.error("Your active request could not be loaded.");
+      }
+    };
+    void refreshActiveRequest();
+    const unsubscribe = subscribeToCustomerRequestChanges(user.id, () => void refreshActiveRequest());
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [user?.id]);
 
   const handleLocate = () => {
     setSheetExpanded(false);
@@ -67,6 +121,18 @@ export function UserMapDashboardPage() {
 
   const handleMapDragStart = () => {
     setSheetExpanded(false);
+  };
+
+  const handleSearch = () => {
+    if (position) return;
+    if (!navigator.geolocation) {
+      toast.error("Location access is not available in this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setPosition({ lat: coords.latitude, lng: coords.longitude }),
+      () => toast.error("Allow location access to search nearby service centers."),
+    );
   };
 
   return (
@@ -77,8 +143,9 @@ export function UserMapDashboardPage() {
 
       {/* Map */}
       <MapComponent
-        center={[30.0444, 31.2357]}
-        zoom={15}
+        zoom={3}
+        centers={centers}
+        onUserLocation={setPosition}
         onLocate={handleLocate}
         onMapDragStart={handleMapDragStart}
       />
@@ -110,6 +177,19 @@ export function UserMapDashboardPage() {
           </span>
         </div>
       </div>
+
+      {activeRequest && (
+        <div className="absolute top-20 inset-x-4 z-40 mx-auto max-w-md glass-sheet rounded-2xl border border-blue-400/20 p-4 shadow-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-300">Active request</p>
+              <p className="mt-1 truncate font-semibold text-white">{activeRequest.request_type.replace(/_/g, " ")} · {activeRequest.status.replace(/_/g, " ")}</p>
+              <p className="text-xs text-slate-300">{activeRequest.offers?.length ?? 0} offers received</p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/user/requests")} className="shrink-0 bg-blue-600 text-white hover:bg-blue-500">Track</Button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom sheet */}
             <div
@@ -224,7 +304,7 @@ export function UserMapDashboardPage() {
               ))}
             </div>
 
-            {/* Search bar */}
+            {/* Search and service filters */}
             <div className="relative mt-4">
               <Search className="absolute start-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
@@ -235,12 +315,37 @@ export function UserMapDashboardPage() {
                 className="glass-input h-12 ps-11 pe-12 text-sm placeholder:text-slate-500"
               />
               <button
+                onClick={handleSearch}
                 className="absolute end-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-500 p-2 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
                 aria-label={t("common.search")}
               >
                 <Navigation className="h-4 w-4" />
               </button>
             </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Select value={serviceType || "all"} onValueChange={(value) => setServiceType(value === "all" ? "" : value)}>
+                <SelectTrigger className="glass-input h-10 text-white" aria-label="Filter service type"><SelectValue placeholder="All services" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All services</SelectItem>
+                  <SelectItem value="Mechanical Repair">Mechanical repair</SelectItem>
+                  <SelectItem value="Auto Electric">Auto electric</SelectItem>
+                  <SelectItem value="Spare Parts Shop">Spare parts</SelectItem>
+                  <SelectItem value="Towing/Roadside Assistance">Towing / roadside</SelectItem>
+                  <SelectItem value="Gas Station">Gas station</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={openNow} onValueChange={setOpenNow}>
+                <SelectTrigger className="glass-input h-10 text-white" aria-label="Filter availability"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any availability</SelectItem>
+                  <SelectItem value="open">Open now</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="mt-2 text-xs text-slate-400" aria-live="polite">
+              {!position ? "Allow location to discover nearby approved centers." : nearbyLoading ? "Searching nearby centers…" : `${centers.length} approved centers nearby`}
+            </p>
           </div>
         </div>
       </div>

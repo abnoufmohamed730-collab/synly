@@ -1,279 +1,185 @@
-import { useState } from "react";
-import { mockRequests, statusLabels, statusColors, urgencyLabels, urgencyColors } from "../lib/mock-data";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/auth-context";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Send, X, MapPin, Clock, Car, User, DollarSign, MessageSquare, Image as ImageIcon } from "lucide-react";
+import { Send, X, MapPin, Clock, Car, LoaderCircle, Play, CheckCircle, Navigation } from "lucide-react";
+import { toast } from "sonner";
+import { declineServiceRequest, getOwnCenter, getVendorOffers, getVendorRequests, submitRequestOffer, subscribeToCenterRequestChanges, transitionServiceRequest, type RequestOffer, type RequestStatus, type ServiceRequest } from "../services/request-service";
+
+const statusTabs: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "New" },
+  { value: "offered", label: "Offered" },
+  { value: "accepted", label: "Accepted" },
+  { value: "in_progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+const statusStyle: Record<string, string> = {
+  pending: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  offered: "border-blue-400/30 bg-blue-400/10 text-blue-300",
+  accepted: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300",
+  in_progress: "border-orange-400/30 bg-orange-400/10 text-orange-300",
+  completed: "border-green-400/30 bg-green-400/10 text-green-300",
+  cancelled: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+};
 
 export function RequestsPage() {
+  const { user } = useAuth();
+  const [centerId, setCenterId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [offers, setOffers] = useState<RequestOffer[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [offerPrice, setOfferPrice] = useState("");
   const [offerMessage, setOfferMessage] = useState("");
+  const [arrival, setArrival] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const filteredRequests = mockRequests.filter((r) => selectedStatus === "all" || r.status === selectedStatus);
+  const refresh = useCallback(async (currentCenterId?: string) => {
+    if (!user) return;
+    const [nextRequests, center] = await Promise.all([
+      getVendorRequests(),
+      currentCenterId ? Promise.resolve(null) : getOwnCenter(user.id),
+    ]);
+    const id = currentCenterId ?? center?.id;
+    if (!id) {
+      setRequests(nextRequests);
+      setLoading(false);
+      return;
+    }
+    setCenterId(id);
+    setRequests(nextRequests);
+    setOffers(await getVendorOffers(id));
+    setLoading(false);
+  }, [user?.id]);
 
-  const statusTabs = [
-    { value: "all", label: "All" },
-    { value: "pending", label: "Pending Offers" },
-    { value: "in_progress", label: "In Progress" },
-    { value: "completed", label: "Completed" },
-    { value: "cancelled", label: "Cancelled" },
-  ];
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const center = await getOwnCenter(user.id);
+        const [nextRequests, nextOffers] = await Promise.all([
+          getVendorRequests(),
+          center ? getVendorOffers(center.id) : Promise.resolve([]),
+        ]);
+        if (!active) return;
+        setCenterId(center?.id ?? null);
+        setRequests(nextRequests);
+        setOffers(nextOffers);
+      } catch (error) {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load requests.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, [user?.id]);
 
-  const selectedRequestData = mockRequests.find((r) => r.id === selectedRequest);
+  useEffect(() => {
+    if (!centerId) return;
+    return subscribeToCenterRequestChanges(centerId, () => {
+      void refresh(centerId).catch((error: Error) => toast.error(error.message));
+    });
+  }, [centerId, refresh]);
 
-  const handleSendOffer = () => {
-    // Handle sending offer
-    console.log("Sending offer", { offerPrice, offerMessage });
+  const selectedRequest = requests.find((request) => request.id === selectedRequestId) ?? null;
+  const filteredRequests = useMemo(() => requests.filter((request) => selectedStatus === "all" || request.status === selectedStatus), [requests, selectedStatus]);
+  const ownOfferByRequest = useMemo(() => new Map(offers.map((offer) => [offer.request_id, offer])), [offers]);
+
+  const handleSendOffer = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedRequest) return;
+    const price = Number(offerPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error("Enter a valid offer price.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await submitRequestOffer(selectedRequest.id, price, offerMessage, arrival ? Number(arrival) : null);
+      await refresh(centerId ?? undefined);
+      setSelectedRequestId(null);
+      toast.success("Your offer was sent to the customer.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the offer.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDecline = () => {
-    // Handle declining request
-    console.log("Declining request");
+  const handleDecline = async (requestId: string) => {
+    try {
+      await declineServiceRequest(requestId);
+      await refresh(centerId ?? undefined);
+      setSelectedRequestId(null);
+      toast.success("Request declined for your center.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not decline this request.");
+    }
+  };
+
+  const handleTransition = async (requestId: string, status: "in_progress" | "completed") => {
+    try {
+      await transitionServiceRequest(requestId, status);
+      await refresh(centerId ?? undefined);
+      toast.success(status === "completed" ? "Job marked complete." : "Job started.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update request status.");
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Requests Management</h1>
-        <p className="text-muted-foreground">Manage incoming breakdown and maintenance requests</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div><h1 className="text-3xl font-bold text-foreground">Requests Management</h1><p className="text-muted-foreground">Respond to eligible customer requests and manage assigned jobs.</p></div>
+        <Badge variant="outline" className="w-fit border-blue-400/20 bg-blue-400/10 text-blue-300"><span className="me-2 h-2 w-2 animate-pulse rounded-full bg-blue-400" />Live queue</Badge>
       </div>
 
       <Tabs value={selectedStatus} onValueChange={setSelectedStatus}>
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
-          {statusTabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-              {tab.label}
-            </TabsTrigger>
-          ))}
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+          {statusTabs.map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="rounded-xl">{tab.label}</TabsTrigger>)}
         </TabsList>
-
-        <TabsContent value={selectedStatus} className="mt-6">
-          {filteredRequests.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="py-12 text-center">
-                <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No requests found</h3>
-                <p className="text-muted-foreground">Try selecting a different status filter.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {filteredRequests.map((request) => (
-                <Card key={request.id} className="glass-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-medium text-foreground">{request.userName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {request.carModel} {request.carYear}
-                        </p>
-                      </div>
-                      <Badge className={statusColors[request.status]} variant="outline">
-                        {statusLabels[request.status]}
-                      </Badge>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {request.issueDescription}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <Badge variant="secondary" className="gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {request.distance}
-                      </Badge>
-                      <Badge variant="secondary" className="gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(request.timestamp).toLocaleString()}
-                      </Badge>
-                      <Badge className={urgencyColors[request.urgency]} variant="outline">
-                        {urgencyLabels[request.urgency]}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setSelectedRequest(request.id)}
-                      >
-                        View Details
-                      </Button>
-                      {request.status === "pending" && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                            onClick={() => {
-                              setSelectedRequest(request.id);
-                              setOfferPrice(request.estimatedPrice?.toString() || "");
-                            }}
-                          >
-                            <Send className="h-4 w-4 mr-2" />
-                            Send Offer
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => console.log("Decline", request.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+        <TabsContent value={selectedStatus} className="mt-5">
+          {loading ? <div className="glass-card rounded-2xl p-10 text-center text-muted-foreground">Loading request queue…</div> : filteredRequests.length === 0 ? (
+            <Card className="glass-card"><CardContent className="py-14 text-center"><Car className="mx-auto mb-4 h-12 w-12 text-muted-foreground" /><h2 className="mb-2 text-lg font-semibold text-foreground">No requests found</h2><p className="text-muted-foreground">New matching requests will appear here when your center is online.</p></CardContent></Card>
+          ) : <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{filteredRequests.map((request) => {
+            const ownOffer = ownOfferByRequest.get(request.id);
+            return <Card key={request.id} className="glass-card"><CardContent className="space-y-4 p-5">
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs text-muted-foreground">Request {request.id.slice(0, 8)}</p><h2 className="mt-1 text-lg font-semibold capitalize text-foreground">{request.request_type.replace(/_/g, " ")}</h2></div><Badge variant="outline" className={statusStyle[request.status]}>{request.status.replace(/_/g, " ")}</Badge></div>
+              <p className="line-clamp-3 text-sm text-muted-foreground">{request.description}</p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge variant="secondary" className="capitalize">{request.urgency}</Badge><span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleString()}</span><span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{request.address || `${request.latitude.toFixed(3)}, ${request.longitude.toFixed(3)}`}</span></div>
+              {ownOffer && <div className="rounded-xl border border-blue-400/15 bg-blue-400/5 p-3 text-sm"><span className="font-semibold text-foreground">Your offer: {ownOffer.currency} {Number(ownOffer.price).toFixed(2)}</span><span className="ms-2 capitalize text-blue-300">{ownOffer.status}</span></div>}
+              <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                <Button variant="outline" size="sm" onClick={() => { setSelectedRequestId(request.id); setOfferPrice(""); setOfferMessage(""); setArrival(""); }}>View details</Button>
+                {(["pending", "offered"].includes(request.status) && !ownOffer) && <Button size="sm" onClick={() => { setSelectedRequestId(request.id); setOfferPrice(""); setOfferMessage(""); setArrival(""); }} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Send className="me-1.5 h-4 w-4" />Send offer</Button>}
+                {(["pending", "offered"].includes(request.status) && !ownOffer) && <Button variant="outline" size="sm" onClick={() => void handleDecline(request.id)} className="border-red-500/20 text-red-400 hover:bg-red-500/10"><X className="me-1 h-4 w-4" />Decline</Button>}
+                {request.status === "accepted" && request.assigned_center_id === centerId && <Button size="sm" onClick={() => void handleTransition(request.id, "in_progress")} className="bg-blue-600 text-white hover:bg-blue-500"><Play className="me-1.5 h-4 w-4" />Start job</Button>}
+                {request.status === "in_progress" && request.assigned_center_id === centerId && <Button size="sm" onClick={() => void handleTransition(request.id, "completed")} className="bg-green-600 text-white hover:bg-green-500"><CheckCircle className="me-1.5 h-4 w-4" />Complete job</Button>}
+              </div>
+            </CardContent></Card>;
+          })}</div>}
         </TabsContent>
       </Tabs>
 
-      {/* Request Detail Modal */}
-      <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedRequestData && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Request Details</DialogTitle>
-                <DialogDescription>
-                  {selectedRequestData.id} - {selectedRequestData.userName}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                {/* User & Car Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Customer</p>
-                      <p className="font-medium text-foreground">{selectedRequestData.userName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Car className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Vehicle</p>
-                      <p className="font-medium text-foreground">
-                        {selectedRequestData.carModel} {selectedRequestData.carYear}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Issue Description */}
-                <div>
-                  <h4 className="font-medium text-foreground mb-2">Issue Description</h4>
-                  <p className="text-sm text-muted-foreground">{selectedRequestData.issueDescription}</p>
-                </div>
-
-                {/* Photos */}
-                {selectedRequestData.photos && selectedRequestData.photos.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-foreground mb-2">Uploaded Photos</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {selectedRequestData.photos.map((photo, idx) => (
-                        <div key={idx} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                          <img src={photo} alt={`Request photo ${idx + 1}`} className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Location & Urgency */}
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{selectedRequestData.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(selectedRequestData.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <Badge className={urgencyColors[selectedRequestData.urgency]} variant="outline">
-                    {urgencyLabels[selectedRequestData.urgency]}
-                  </Badge>
-                </div>
-
-                {/* Offer Section */}
-                {selectedRequestData.status === "pending" && (
-                  <div className="border-t border-border pt-4 space-y-4">
-                    <h4 className="font-medium text-foreground">Send Price Offer</h4>
-                    <div className="space-y-2">
-                      <Label htmlFor="offerPrice">Offer Price (EGP)</Label>
-                      <Input
-                        id="offerPrice"
-                        type="number"
-                        placeholder="Enter your offer amount"
-                        value={offerPrice}
-                        onChange={(e) => setOfferPrice(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="offerMessage">Offer Message</Label>
-                      <Textarea
-                        id="offerMessage"
-                        placeholder="Describe your offer, services included..."
-                        value={offerMessage}
-                        onChange={(e) => setOfferMessage(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                        onClick={handleSendOffer}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Send Offer
-                      </Button>
-                      <Button variant="destructive" onClick={handleDecline}>
-                        <X className="h-4 w-4 mr-2" />
-                        Decline
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Invoice Section */}
-                {selectedRequestData.status === "completed" && (
-                  <div className="border-t border-border pt-4">
-                    <h4 className="font-medium text-foreground mb-2">Final Invoice</h4>
-                    <div className="rounded-lg bg-accent p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Service</span>
-                        <span className="text-foreground">{selectedRequestData.issueDescription}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Labor</span>
-                        <span className="text-foreground">EGP {(selectedRequestData.offerPrice || 0) * 0.6}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Parts</span>
-                        <span className="text-foreground">EGP {(selectedRequestData.offerPrice || 0) * 0.4}</span>
-                      </div>
-                      <div className="border-t border-border pt-2 flex justify-between">
-                        <span className="font-medium text-foreground">Total</span>
-                        <span className="font-bold text-foreground">EGP {selectedRequestData.offerPrice}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+      <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)}>
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
+          {selectedRequest && <>
+            <DialogHeader><DialogTitle className="capitalize">{selectedRequest.request_type.replace(/_/g, " ")} request</DialogTitle><DialogDescription>Request {selectedRequest.id.slice(0, 8)} · {new Date(selectedRequest.created_at).toLocaleString()}</DialogDescription></DialogHeader>
+            <div className="space-y-4"><div className="flex flex-wrap gap-2"><Badge variant="outline" className={statusStyle[selectedRequest.status]}>{selectedRequest.status.replace(/_/g, " ")}</Badge><Badge variant="secondary" className="capitalize">{selectedRequest.urgency}</Badge>{selectedRequest.scheduled_at && <Badge variant="secondary">Scheduled {new Date(selectedRequest.scheduled_at).toLocaleString()}</Badge>}</div><p className="whitespace-pre-wrap text-sm text-foreground">{selectedRequest.description}</p><div className="rounded-xl border border-white/10 bg-white/[0.03] p-3"><p className="flex items-center gap-2 text-sm font-medium text-foreground"><MapPin className="h-4 w-4 text-blue-400" />{selectedRequest.address || "Request location"}</p><p className="mt-1 text-xs text-muted-foreground">{selectedRequest.latitude}, {selectedRequest.longitude}</p><a className="mt-2 inline-flex items-center text-xs text-blue-300 hover:text-blue-200" href={`https://www.openstreetmap.org/?mlat=${selectedRequest.latitude}&mlon=${selectedRequest.longitude}#map=16/${selectedRequest.latitude}/${selectedRequest.longitude}`} target="_blank" rel="noreferrer"><Navigation className="me-1.5 h-3.5 w-3.5" />Open map</a></div>
+              {selectedRequest.status === "pending" || selectedRequest.status === "offered" ? ownOfferByRequest.has(selectedRequest.id) ? <div className="rounded-xl border border-blue-400/20 bg-blue-400/5 p-4 text-sm text-blue-200">You have already sent an offer for this request.</div> : <form onSubmit={handleSendOffer} className="space-y-3 border-t border-white/10 pt-4"><h3 className="font-semibold text-foreground">Send a price offer</h3><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="offerPrice">Offer price (EGP)</Label><Input id="offerPrice" type="number" min="0.01" step="0.01" required value={offerPrice} onChange={(event) => setOfferPrice(event.target.value)} placeholder="Enter amount" /></div><div className="space-y-2"><Label htmlFor="offerArrival">Estimated arrival (minutes)</Label><Input id="offerArrival" type="number" min="0" max="1440" value={arrival} onChange={(event) => setArrival(event.target.value)} placeholder="Optional" /></div></div><div className="space-y-2"><Label htmlFor="offerMessage">Message (optional)</Label><Textarea id="offerMessage" value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} placeholder="What is included in your offer?" /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedRequestId(null)}>Close</Button><Button type="submit" disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving && <LoaderCircle className="me-2 h-4 w-4 animate-spin" />}Send offer</Button></DialogFooter></form> : null}
+            </div>
+          </>}
         </DialogContent>
       </Dialog>
     </div>

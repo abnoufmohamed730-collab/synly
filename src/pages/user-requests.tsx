@@ -1,73 +1,253 @@
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/auth-context";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { mockUserRequests } from "../lib/mock-data";
-import { Plus, Car, Clock, Phone, MapPin } from "lucide-react";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Plus, Car, Clock, MapPin, LocateFixed, Check, X, LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
+import {
+  acceptRequestOffer,
+  cancelServiceRequest,
+  createServiceRequest,
+  getCustomerRequests,
+  getCustomerVehicles,
+  subscribeToCustomerRequestChanges,
+  type NewServiceRequest,
+  type RequestType,
+  type RequestUrgency,
+  type ServiceRequest,
+} from "../services/request-service";
+
+const requestTypes: { value: RequestType; label: string }[] = [
+  { value: "towing", label: "Towing / roadside help" },
+  { value: "battery", label: "Battery" },
+  { value: "tire", label: "Tire change" },
+  { value: "fuel", label: "Fuel delivery" },
+  { value: "lockout", label: "Vehicle lockout" },
+  { value: "mechanical", label: "Mechanical repair" },
+  { value: "maintenance", label: "Scheduled maintenance" },
+  { value: "spare_parts", label: "Spare parts" },
+  { value: "other", label: "Other" },
+];
+
+const activeStatuses = ["pending", "offered", "accepted", "in_progress"];
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    accepted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    completed: "bg-green-500/20 text-green-400 border-green-500/30",
-    cancelled: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  const styles: Record<string, string> = {
+    pending: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+    offered: "border-blue-400/30 bg-blue-400/10 text-blue-300",
+    accepted: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300",
+    in_progress: "border-orange-400/30 bg-orange-400/10 text-orange-300",
+    completed: "border-green-400/30 bg-green-400/10 text-green-300",
+    cancelled: "border-slate-400/30 bg-slate-400/10 text-slate-300",
   };
-  return (
-    <Badge className={map[status] || map.pending} variant="outline">
-      {status}
-    </Badge>
-  );
+  return <Badge variant="outline" className={styles[status] ?? styles.pending}>{status.replace(/_/g, " ")}</Badge>;
 }
 
 export function UserRequestsPage() {
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const preferredType = requestTypes.some((item) => item.value === searchParams.get("type")) ? searchParams.get("type") as RequestType : "mechanical";
+  const assignedCenterId = searchParams.get("center") || null;
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [vehicles, setVehicles] = useState<Array<{ id: string; make: string | null; model: string; year: number | null; plate_number: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({
+    requestType: preferredType,
+    urgency: "emergency" as RequestUrgency,
+    description: "",
+    address: "",
+    vehicleId: "none",
+    latitude: "",
+    longitude: "",
+    scheduledAt: "",
+  });
+
+  const refreshRequests = useCallback(async () => {
+    if (!user) return;
+    const result = await getCustomerRequests(user.id);
+    setRequests(result);
+    setLoading(false);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const [savedVehicles, savedRequests] = await Promise.all([getCustomerVehicles(user.id), getCustomerRequests(user.id)]);
+        if (!active) return;
+        setVehicles(savedVehicles);
+        setRequests(savedRequests);
+      } catch (error) {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load your requests.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    const unsubscribe = subscribeToCustomerRequestChanges(user.id, () => {
+      void refreshRequests().catch((error: Error) => toast.error(error.message));
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [user?.id, refreshRequests]);
+
+  useEffect(() => {
+    setForm((current) => ({ ...current, requestType: preferredType }));
+    if (assignedCenterId) setCreateOpen(true);
+  }, [preferredType, assignedCenterId]);
+
+  const locate = () => {
+    if (!navigator.geolocation) {
+      toast.error("Location access is not available in this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setForm((current) => ({ ...current, latitude: coords.latitude.toFixed(6), longitude: coords.longitude.toFixed(6) })),
+      () => toast.error("Allow location access or enter coordinates manually."),
+      { enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 },
+    );
+  };
+
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user) return;
+    const latitude = Number(form.latitude);
+    const longitude = Number(form.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !form.latitude || !form.longitude) {
+      toast.error("Set a valid location before creating your request.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const request: NewServiceRequest = {
+        requestType: form.requestType,
+        urgency: form.urgency,
+        description: form.description,
+        latitude,
+        longitude,
+        address: form.address,
+        vehicleId: form.vehicleId === "none" ? null : form.vehicleId,
+        scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
+        assignedCenterId,
+      };
+      await createServiceRequest(request);
+      await refreshRequests();
+      setCreateOpen(false);
+      setForm((current) => ({ ...current, description: "", address: "", scheduledAt: "" }));
+      toast.success("Your service request was sent.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create your request.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offerId: string) => {
+    try {
+      await acceptRequestOffer(offerId);
+      await refreshRequests();
+      toast.success("Offer accepted. The service center has been assigned.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not accept this offer.");
+    }
+  };
+
+  const handleCancel = async (requestId: string) => {
+    try {
+      await cancelServiceRequest(requestId);
+      await refreshRequests();
+      toast.success("Request cancelled.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not cancel this request.");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Requests</h1>
-          <p className="text-muted-foreground">Track your roadside assistance and maintenance requests</p>
+          <p className="text-muted-foreground">Create a request, compare offers, and follow progress</p>
         </div>
-        <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          New Request
+        <Button onClick={() => setCreateOpen(true)} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600">
+          <Plus className="me-2 h-4 w-4" />New Request
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {mockUserRequests.map((req) => (
-          <Card key={req.id} className="glass-card">
-            <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Car className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-foreground">{req.service}</p>
-                    <StatusBadge status={req.status} />
+      {loading ? <div className="glass-card rounded-2xl p-8 text-center text-muted-foreground">Loading your requests…</div> : requests.length === 0 ? (
+        <Card className="glass-card"><CardContent className="py-14 text-center">
+          <Car className="mx-auto mb-4 h-12 w-12 text-blue-400" />
+          <h2 className="text-lg font-semibold text-foreground">No requests yet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Your service requests and incoming offers will appear here.</p>
+        </CardContent></Card>
+      ) : (
+        <div className="space-y-4">
+          {requests.map((request) => (
+            <Card key={request.id} className="glass-card">
+              <CardContent className="space-y-4 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400"><Car className="h-6 w-6" /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold capitalize text-foreground">{requestTypes.find((item) => item.value === request.request_type)?.label ?? request.request_type}</h2><StatusBadge status={request.status} /></div>
+                    <p className="mt-1 text-sm text-muted-foreground">{request.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{request.address || `${request.latitude.toFixed(4)}, ${request.longitude.toFixed(4)}`}</span>
+                      <span className="capitalize">{request.urgency}</span>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{req.center}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {req.date}
-                    </span>
-                    {req.price && (
-                      <span className="font-semibold text-foreground">EGP {req.price}</span>
-                    )}
-                  </div>
+                  {activeStatuses.includes(request.status) && <Button variant="outline" size="sm" onClick={() => handleCancel(request.id)} className="shrink-0 border-white/10 text-muted-foreground hover:text-red-400"><X className="me-1.5 h-4 w-4" />Cancel</Button>}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Phone className="h-4 w-4 mr-1" /> Call
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <MapPin className="h-4 w-4 mr-1" /> Track
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
+                {request.offers?.length ? <div className="grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
+                  {request.offers.map((offer) => (
+                    <div key={offer.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div><p className="font-semibold text-foreground">{offer.service_centers?.name ?? "Service center"}</p><p className="text-xs text-muted-foreground">{offer.service_centers?.service_type}</p></div>
+                        <StatusBadge status={offer.status} />
+                      </div>
+                      <p className="mt-3 text-xl font-bold text-orange-300">{offer.currency} {Number(offer.price).toFixed(2)}</p>
+                      {offer.message && <p className="mt-1 text-sm text-muted-foreground">{offer.message}</p>}
+                      {offer.estimated_arrival_minutes !== null && <p className="mt-2 text-xs text-muted-foreground">Estimated arrival: {offer.estimated_arrival_minutes} min</p>}
+                      {offer.status === "pending" && ["pending", "offered"].includes(request.status) && <Button size="sm" className="mt-3 bg-blue-600 text-white hover:bg-blue-500" onClick={() => void handleAcceptOffer(offer.id)}><Check className="me-1.5 h-4 w-4" />Accept offer</Button>}
+                    </div>
+                  ))}
+                </div> : request.status === "pending" || request.status === "offered" ? <p className="border-t border-white/10 pt-3 text-xs text-muted-foreground">Waiting for nearby service centers to respond.</p> : null}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Create service request</DialogTitle><DialogDescription>Your live location is only stored when you submit this request.</DialogDescription></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2"><Label>Service type</Label><Select value={form.requestType} onValueChange={(value: RequestType) => setForm({ ...form, requestType: value })}><SelectTrigger aria-label="Service type"><SelectValue /></SelectTrigger><SelectContent>{requestTypes.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Urgency</Label><Select value={form.urgency} onValueChange={(value: RequestUrgency) => setForm({ ...form, urgency: value })}><SelectTrigger aria-label="Urgency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="emergency">Emergency</SelectItem><SelectItem value="urgent">Urgent</SelectItem><SelectItem value="normal">Standard</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem></SelectContent></Select></div>
+            </div>
+            <div className="space-y-2"><Label htmlFor="requestDescription">Describe the issue</Label><Textarea id="requestDescription" required minLength={5} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Tell service centers what you need" /></div>
+            <div className="space-y-2"><Label htmlFor="requestAddress">Address or landmark (optional)</Label><Input id="requestAddress" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} placeholder="Nearby street, landmark, or note" /></div>
+            {vehicles.length > 0 && <div className="space-y-2"><Label>Vehicle (optional)</Label><Select value={form.vehicleId} onValueChange={(value) => setForm({ ...form, vehicleId: value })}><SelectTrigger aria-label="Vehicle"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No vehicle</SelectItem>{vehicles.map((vehicle) => <SelectItem key={vehicle.id} value={vehicle.id}>{[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")} · {vehicle.plate_number}</SelectItem>)}</SelectContent></Select></div>}
+            {form.urgency === "scheduled" && <div className="space-y-2"><Label htmlFor="scheduledAt">Preferred time</Label><Input id="scheduledAt" type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /></div>}
+            <div className="space-y-2"><div className="flex items-center justify-between gap-3"><Label>Request location</Label><Button type="button" variant="outline" size="sm" onClick={locate}><LocateFixed className="me-1.5 h-4 w-4" />Use my location</Button></div><div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Label htmlFor="requestLatitude" className="text-xs text-muted-foreground">Latitude</Label><Input id="requestLatitude" type="number" step="any" required value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} /></div><div className="space-y-1"><Label htmlFor="requestLongitude" className="text-xs text-muted-foreground">Longitude</Label><Input id="requestLongitude" type="number" step="any" required value={form.longitude} onChange={(event) => setForm({ ...form, longitude: event.target.value })} /></div></div></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving ? <LoaderCircle className="me-2 h-4 w-4 animate-spin" /> : <Plus className="me-2 h-4 w-4" />}{saving ? "Sending…" : "Send request"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
