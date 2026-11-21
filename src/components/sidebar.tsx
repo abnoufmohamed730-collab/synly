@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useSignOut } from "react-router-dom";
 import { cn } from "../lib/utils";
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   MapPin,
   ClipboardList,
   Home,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
@@ -23,10 +24,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean; onClose: () => void; forceDrawer?: boolean }) {
-  const { user, logout, mode, setMode } = useAuth();
+  const { user, logout, logoutAllSessions, mode, setMode, sessionExpiresAt, deviceSessions } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const isVendor = mode === "vendor";
+  const [showSessionInfo, setShowSessionInfo] = useState(false);
 
   const navItems = isVendor
     ? [

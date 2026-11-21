@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "./components/theme-provider";
-import { AuthProvider, useAuth } from "./context/auth-context";
+import { AuthProvider } from "./context/auth-context";
 import { LanguageProvider } from "./context/language-context";
 import { DashboardLayout } from "./components/dashboard-layout";
+import { ProtectedRoute } from "./components/protected-route";
 import { WelcomePage } from "./pages/Welcome";
 import { LoginPage } from "./pages/login";
 import { RegisterPage } from "./pages/register";
@@ -16,17 +17,6 @@ import { UserRequestsPage } from "./pages/user-requests";
 import { ShopsPage } from "./pages/shops";
 import { PageTransition } from "./components/PageTransition";
 
-function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return <Outlet />;
-}
-
 export default function App() {
   return (
     <ThemeProvider>
@@ -34,14 +24,14 @@ export default function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<WelcomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
-              {/* Protected routes with page transitions */}
-              <Route element={<ProtectedRoute />}>
+              {/* Protected User Experience: accessible by car owners & vendors */}
+              <Route element={<ProtectedRoute allowedRoles={["user", "vendor"]} requiredMode="user" />}>
                 <Route element={<PageTransition />}>
-                  {/* Regular User Mode */}
                   <Route path="/user">
                     <Route index element={<UserMapDashboardPage />} />
                     <Route element={<DashboardLayout />}>
@@ -50,21 +40,28 @@ export default function App() {
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
                   </Route>
+                </Route>
+              </Route>
 
-                  {/* Service Center / Vendor Mode */}
+              {/* Protected Vendor Experience: strictly restricted to verified service centers / vendors */}
+              <Route element={<ProtectedRoute allowedRoles={["vendor"]} requiredMode="vendor" />}>
+                <Route element={<PageTransition />}>
                   <Route path="/dashboard">
                     <Route index element={<DashboardPage />} />
-                    <Route path="requests" element={<RequestsPage />} />
-                    <Route path="catalog" element={<CatalogPage />} />
-                    <Route path="profile" element={<ProfilePage />} />
+                    <Route element={<DashboardLayout />}>
+                      <Route path="requests" element={<RequestsPage />} />
+                      <Route path="catalog" element={<CatalogPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                    </Route>
                   </Route>
                 </Route>
               </Route>
 
+              {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" richColors theme="dark" />
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
