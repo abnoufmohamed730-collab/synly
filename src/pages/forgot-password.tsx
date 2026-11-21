@@ -1,6 +1,6 @@
 import { useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, MessageCircle, Phone, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, EyeOff, LockKeyhole, MessageCircle, Phone, ShieldCheck, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/language-context";
 import { LanguageSwitcher } from "../components/language-switcher";
@@ -175,7 +175,7 @@ export function ForgotPasswordPage() {
                 <p className="mt-2 text-sm leading-relaxed text-slate-400">{t("recovery.verifyDescription")} <span dir="ltr" className="inline-block font-semibold text-white">{maskedPhone}</span></p>
                 <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
                   <span className="flex items-center gap-2 text-xs text-slate-300">{recovery.channel === "whatsapp" ? <MessageCircle className="h-4 w-4 text-green-400" /> : <Smartphone className="h-4 w-4 text-blue-400" />}{recovery.channel === "whatsapp" ? "WhatsApp" : "SMS"}</span>
-                  <span className="text-[11px] text-orange-300">{t("recovery.demoCodeHint", { code: recovery.challenge?.demoCode ?? "" })}</span>
+                  <span className="text-[11px] text-slate-400">{t("recovery.codeSentSecurely")}</span>
                 </div>
                 <form onSubmit={handleVerify} className="mt-6 space-y-5">
                   <div className="flex justify-center gap-2 sm:gap-3" dir="ltr">
@@ -242,7 +242,6 @@ export function ForgotPasswordPage() {
             )}
           </div>
           {recovery.step !== "complete" && <div className="border-t border-white/10 bg-white/[0.02] px-6 py-4 text-center sm:px-8"><Link to="/login" className="inline-flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"><ArrowLeft className={`h-4 w-4 ${isArabic ? "rotate-180" : ""}`} />{t("recovery.backToLogin")}</Link></div>}
-          {recovery.step === "otp" && <div className="flex items-start gap-2 border-t border-blue-500/10 bg-blue-500/[0.04] px-6 py-3 text-[11px] leading-relaxed text-slate-500 sm:px-8"><Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-300" />{t("recovery.demoNotice")}</div>}
         </section>
       </main>
     </div>

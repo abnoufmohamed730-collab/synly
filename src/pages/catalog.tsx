@@ -1,258 +1,78 @@
-import { useState } from "react";
-import { mockServices, mockParts, ServiceItem } from "../lib/mock-data";
-import { Card, CardContent } from "../components/ui/card";
+import { useCallback, useEffect, useState } from "react";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Badge } from "../components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Plus, Wrench, Package, Pencil, Trash2, Boxes } from "lucide-react";
+import { Textarea } from "../components/ui/textarea";
+import { Package, Pencil, Plus, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../context/auth-context";
+import { supabase } from "../integrations/supabase/client";
+
+type CatalogItem = { id: string; service_center_id: string; item_type: "service" | "part"; name: string; description: string; price: number; stock: number | null; unit: string | null; is_active: boolean };
+const emptyForm = { name: "", description: "", price: "", stock: "", unit: "pcs" };
 
 export function CatalogPage() {
-  const [services, setServices] = useState<ServiceItem[]>(mockServices);
-  const [parts, setParts] = useState<ServiceItem[]>(mockParts);
-  const [activeTab, setActiveTab] = useState("services");
+  const { user } = useAuth();
+  const [centerId, setCenterId] = useState<string | null>(null);
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [activeTab, setActiveTab] = useState<"service" | "part">("service");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<ServiceItem | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", stock: "" });
+  const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const isService = activeTab === "services";
-  const items = isService ? services : parts;
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    const { data: center, error: centerError } = await supabase.from("service_centers").select("id").eq("owner_id", user.id).single();
+    if (centerError) throw new Error(centerError.message);
+    setCenterId(center.id);
+    const { data, error } = await supabase.from("catalog_items").select("*").eq("service_center_id", center.id).order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    setItems(data ?? []);
+  }, [user?.id]);
 
-  const openAdd = () => {
-    setEditing(null);
-    setForm({ name: "", description: "", price: "", stock: "" });
-    setDialogOpen(true);
-  };
+  useEffect(() => { void load().catch((error: Error) => toast.error(error.message)).finally(() => setLoading(false)); }, [load]);
 
-  const openEdit = (item: ServiceItem) => {
-    setEditing(item);
-    setForm({
-      name: item.name,
-      description: item.description,
-      price: String(item.price),
-      stock: item.stock !== undefined ? String(item.stock) : "",
-    });
-    setDialogOpen(true);
-  };
+  const openAdd = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
+  const openEdit = (item: CatalogItem) => { setEditing(item); setForm({ name: item.name, description: item.description, price: String(item.price), stock: String(item.stock ?? ""), unit: item.unit ?? "pcs" }); setDialogOpen(true); };
 
-  const handleSave = () => {
-    if (!form.name || !form.price) {
-      toast.error("Please fill in the name and price");
+  const save = async () => {
+    const price = Number(form.price);
+    const stock = Number(form.stock);
+    if (!centerId || !form.name.trim() || !Number.isFinite(price) || price < 0 || (activeTab === "part" && (!Number.isInteger(stock) || stock < 0))) {
+      toast.error("Enter a name, valid price, and valid stock quantity for parts.");
       return;
     }
-
-    const base: ServiceItem = {
-      id: editing?.id || `${isService ? "SVC" : "PRT"}-${Date.now()}`,
-      name: form.name,
-      category: isService ? "service" : "part",
-      description: form.description,
-      price: Number(form.price),
-      active: true,
-      ...(isService ? {} : { stock: Number(form.stock) || 0, unit: "pcs" }),
-    };
-
-    if (isService) {
-      setServices((prev) =>
-        editing ? prev.map((s) => (s.id === editing.id ? base : s)) : [...prev, base]
-      );
-    } else {
-      setParts((prev) =>
-        editing ? prev.map((p) => (p.id === editing.id ? base : p)) : [...prev, base]
-      );
-    }
-
-    toast.success(editing ? "Item updated" : "Item added");
+    setSaving(true);
+    const values = { service_center_id: centerId, item_type: activeTab, name: form.name.trim(), description: form.description.trim(), price, stock: activeTab === "part" ? stock : null, unit: activeTab === "part" ? form.unit.trim() || "pcs" : null };
+    const result = editing
+      ? await supabase.from("catalog_items").update(values).eq("id", editing.id).eq("service_center_id", centerId)
+      : await supabase.from("catalog_items").insert(values);
+    setSaving(false);
+    if (result.error) { toast.error(result.error.message); return; }
+    toast.success(editing ? "Catalog item updated." : "Catalog item added.");
     setDialogOpen(false);
+    await load();
   };
 
-  const handleDelete = (id: string) => {
-    if (isService) {
-      setServices((prev) => prev.filter((s) => s.id !== id));
-    } else {
-      setParts((prev) => prev.filter((p) => p.id !== id));
-    }
-    toast.success("Item removed");
+  const toggleActive = async (item: CatalogItem) => {
+    const { error } = await supabase.from("catalog_items").update({ is_active: !item.is_active }).eq("id", item.id).eq("service_center_id", centerId);
+    if (error) { toast.error(error.message); return; }
+    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, is_active: !entry.is_active } : entry));
+    toast.success(item.is_active ? "Item archived." : "Item restored.");
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Catalog & Inventory</h1>
-          <p className="text-muted-foreground">Manage your services and spare parts</p>
-        </div>
-        <Button
-          onClick={openAdd}
-          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add {isService ? "Service" : "Part"}
-        </Button>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
-          <TabsTrigger value="services" className="gap-2">
-            <Wrench className="h-4 w-4" />
-            Services ({services.length})
-          </TabsTrigger>
-          <TabsTrigger value="parts" className="gap-2">
-            <Package className="h-4 w-4" />
-            Parts ({parts.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={activeTab} className="mt-6">
-          {items.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="py-12 text-center">
-                <Boxes className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No items yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Add your first {isService ? "service" : "part"} to get started.
-                </p>
-                <Button onClick={openAdd} variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add {isService ? "Service" : "Part"}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {items.map((item) => (
-                <Card key={item.id} className="glass-card hover:border-primary/30 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div
-                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                          isService ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-500"
-                        }`}
-                      >
-                        {isService ? <Wrench className="h-5 w-5" /> : <Package className="h-5 w-5" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground leading-tight">{item.name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                          {item.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-bold text-foreground">
-                        EGP {item.price.toLocaleString()}
-                      </span>
-                      {!isService && item.stock !== undefined && (
-                        <Badge
-                          variant="secondary"
-                          className={item.stock < 10 ? "text-amber-500" : ""}
-                        >
-                          {item.stock} {item.unit}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => openEdit(item)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Edit" : "Add"} {isService ? "Service" : "Part"}
-            </DialogTitle>
-            <DialogDescription>
-              {isService
-                ? "Define a service you offer with its price."
-                : "Add a spare part with stock quantity and price."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="item-name">Name</Label>
-              <Input
-                id="item-name"
-                placeholder={isService ? "e.g. Oil Change" : "e.g. Brake Pads Set"}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-desc">Description</Label>
-              <Input
-                id="item-desc"
-                placeholder="Short description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="item-price">Price (EGP)</Label>
-                <Input
-                  id="item-price"
-                  type="number"
-                  placeholder="0"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                />
-              </div>
-              {!isService && (
-                <div className="space-y-2">
-                  <Label htmlFor="item-stock">Stock</Label>
-                  <Input
-                    id="item-stock"
-                    type="number"
-                    placeholder="0"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-            >
-              {editing ? "Save Changes" : "Add Item"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+  const visibleItems = items.filter((item) => item.item_type === activeTab);
+  return <div className="space-y-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-3xl font-bold text-foreground">Catalog & Inventory</h1><p className="text-muted-foreground">Manage services and spare parts from your live catalog.</p></div><Button onClick={openAdd} disabled={!centerId} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Plus className="me-2 h-4 w-4" />Add {activeTab === "service" ? "Service" : "Part"}</Button></div>
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "service" | "part")}><TabsList className="grid w-full grid-cols-2 sm:w-auto"><TabsTrigger value="service" className="gap-2"><Wrench className="h-4 w-4" />Services</TabsTrigger><TabsTrigger value="part" className="gap-2"><Package className="h-4 w-4" />Parts</TabsTrigger></TabsList><TabsContent value={activeTab} className="mt-6">
+      {loading ? <div className="glass-card rounded-2xl p-10 text-center text-muted-foreground">Loading catalog…</div> : visibleItems.length === 0 ? <Card className="glass-card"><CardContent className="py-12 text-center"><Package className="mx-auto mb-4 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold text-foreground">No {activeTab === "service" ? "services" : "parts"} yet</h2><p className="mt-2 text-sm text-muted-foreground">Create a live catalog entry to offer it to customers.</p></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleItems.map((item) => <Card key={item.id} className="glass-card"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-foreground">{item.name}</h2><p className="mt-1 text-sm text-muted-foreground">{item.description}</p></div><Badge variant="outline" className={item.is_active ? "border-emerald-500/30 text-emerald-300" : "border-slate-500/30 text-slate-400"}>{item.is_active ? "Active" : "Archived"}</Badge></div><div className="mt-5 flex items-center justify-between"><span className="text-xl font-bold text-foreground">EGP {Number(item.price).toLocaleString()}</span>{item.item_type === "part" && <span className="text-sm text-muted-foreground">{item.stock} {item.unit}</span>}</div><div className="mt-4 flex gap-2"><Button variant="outline" className="flex-1" onClick={() => openEdit(item)}><Pencil className="me-2 h-4 w-4" />Edit</Button><Button variant="outline" onClick={() => void toggleActive(item)}>{item.is_active ? "Archive" : "Restore"}</Button></div></CardContent></Card>)}</div>}
+    </TabsContent></Tabs>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-lg border-white/10 bg-slate-950 text-white"><DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} {activeTab === "service" ? "Service" : "Part"}</DialogTitle><DialogDescription className="text-slate-400">Changes are saved to your service center catalog.</DialogDescription></DialogHeader><div className="space-y-4"><div className="space-y-2"><Label htmlFor="catalog-name">Name</Label><Input id="catalog-name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} maxLength={120} /></div><div className="space-y-2"><Label htmlFor="catalog-description">Description</Label><Textarea id="catalog-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></div><div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label htmlFor="catalog-price">Price (EGP)</Label><Input id="catalog-price" type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} /></div>{activeTab === "part" && <><div className="space-y-2"><Label htmlFor="catalog-stock">Stock</Label><Input id="catalog-stock" type="number" min="0" step="1" value={form.stock} onChange={(event) => setForm({ ...form, stock: event.target.value })} /></div><div className="space-y-2"><Label htmlFor="catalog-unit">Unit</Label><Input id="catalog-unit" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} maxLength={24} /></div></>}</div></div><DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button disabled={saving} onClick={() => void save()} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving ? "Saving…" : editing ? "Save changes" : "Add item"}</Button></DialogFooter></DialogContent></Dialog>
+  </div>;
 }

@@ -1,21 +1,35 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const allowedOrigins = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "http://localhost:42101")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
-export function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+export function corsHeadersFor(request: Request): Record<string, string> | null {
+  const origin = request.headers.get("Origin")?.replace(/\/$/, "");
+  if (!origin || !allowedOrigins.includes(origin)) return null;
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+export function jsonResponse(body: Record<string, unknown>, request: Request, status = 200): Response {
+  const headers = corsHeadersFor(request);
+  if (!headers) return new Response(null, { status: 403 });
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
+    headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
   });
 }
 
 export function handleOptions(request: Request): Response | null {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed." }, 405);
+  const headers = corsHeadersFor(request);
+  if (!headers) return new Response(null, { status: 403 });
+  if (request.method === "OPTIONS") return new Response(null, { headers });
+  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed." }, request, 405);
   return null;
 }
 

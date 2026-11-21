@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  OTP_LIFETIME_SECONDS,
+  OTP_LIFETIME_SECONDS_CLIENT,
   passwordRecoveryService,
   type DeliveryChannel,
   type OtpChallenge,
@@ -15,21 +15,19 @@ export function usePasswordRecovery() {
   const [phone, setPhone] = useState("+20");
   const [channel, setChannel] = useState<DeliveryChannel>("whatsapp");
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(OTP_LIFETIME_SECONDS);
+  const [remainingSeconds, setRemainingSeconds] = useState(OTP_LIFETIME_SECONDS_CLIENT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<RecoveryError | null>(null);
 
   useEffect(() => {
     if (step !== "otp" || remainingSeconds <= 0) return;
-    const timer = window.setInterval(() => {
-      setRemainingSeconds((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
+    const timer = window.setInterval(() => setRemainingSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [step, remainingSeconds]);
 
   const requestCode = useCallback(async (nextChannel = channel) => {
     const normalizedPhone = phone.replace(/[\s()-]/g, "");
-    if (!/^\+\d{8,15}$/.test(normalizedPhone)) {
+    if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
       setError("phone-invalid");
       return null;
     }
@@ -39,7 +37,7 @@ export function usePasswordRecovery() {
       const nextChallenge = await passwordRecoveryService.requestOtp(normalizedPhone, nextChannel);
       setChallenge(nextChallenge);
       setChannel(nextChannel);
-      setRemainingSeconds(OTP_LIFETIME_SECONDS);
+      setRemainingSeconds(OTP_LIFETIME_SECONDS_CLIENT);
       setStep("otp");
       return nextChallenge;
     } catch {
@@ -55,16 +53,16 @@ export function usePasswordRecovery() {
     setLoading(true);
     setError(null);
     try {
-      await passwordRecoveryService.verifyOtp(challenge, code);
+      setChallenge(await passwordRecoveryService.verifyOtp(challenge, code));
       setStep("password");
       return true;
-    } catch (failure) {
-      setError(failure instanceof Error && failure.message === "otp-expired" ? "otp-expired" : "otp-invalid");
+    } catch {
+      setError(remainingSeconds <= 0 ? "otp-expired" : "otp-invalid");
       return false;
     } finally {
       setLoading(false);
     }
-  }, [challenge]);
+  }, [challenge, remainingSeconds]);
 
   const resetPassword = useCallback(async (password: string, confirmation: string) => {
     if (password.length < 8) {
@@ -75,11 +73,11 @@ export function usePasswordRecovery() {
       setError("password-mismatch");
       return false;
     }
-    if (!challenge) return false;
+    if (!challenge?.resetToken) return false;
     setLoading(true);
     setError(null);
     try {
-      await passwordRecoveryService.resetPassword(challenge.phone, password);
+      await passwordRecoveryService.resetPassword(challenge, password);
       setStep("complete");
       return true;
     } catch {
@@ -91,22 +89,8 @@ export function usePasswordRecovery() {
   }, [challenge]);
 
   return {
-    step,
-    phone,
-    setPhone,
-    channel,
-    setChannel,
-    challenge,
-    remainingSeconds,
-    loading,
-    error,
-    setError,
-    requestCode,
-    verifyCode,
-    resetPassword,
-    backToPhone: () => {
-      setStep("phone");
-      setError(null);
-    },
+    step, phone, setPhone, channel, setChannel, challenge, remainingSeconds, loading, error, setError,
+    requestCode, verifyCode, resetPassword,
+    backToPhone: () => { setStep("phone"); setError(null); },
   };
 }

@@ -14,72 +14,26 @@ import {
 serve(async (request) => {
   const preflight = handleOptions(request);
   if (preflight) return preflight;
-
   const payload = await parseJson(request);
   const phone = typeof payload?.phone === "string" ? payload.phone.trim() : "";
   const otp = typeof payload?.otp === "string" ? payload.otp.trim() : "";
-  if (!isE164(phone) || !isSixDigitOtp(otp)) {
-    return jsonResponse({ error: "Invalid phone number or OTP format." }, 400);
-  }
+  if (!isE164(phone) || !isSixDigitOtp(otp)) return jsonResponse({ error: "Invalid phone number or OTP format." }, request, 400);
 
   try {
     const admin = createAdminClient();
-    const now = new Date().toISOString();
-    const { data: record, error: findError } = await admin
-      .from("password_reset_otps")
-      .select("id, otp_hash, expires_at, attempts")
-      .eq("phone", phone)
-      .is("used_at", null)
-      .gt("expires_at", now)
-      .lt("attempts", 5)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (findError) throw new Error("OTP lookup failed");
-    if (!record) return jsonResponse({ error: "Verification code is invalid or expired." }, 400);
-
     const secret = getRequiredSecret("OTP_HASH_SECRET");
     const candidateHash = await hashValue(`${phone}:${otp}:${secret}`);
-    if (candidateHash !== record.otp_hash) {
-      const { data: updated, error: attemptError } = await admin
-        .from("password_reset_otps")
-        .update({ attempts: record.attempts + 1 })
-        .eq("id", record.id)
-        .eq("attempts", record.attempts)
-        .is("used_at", null)
-        .select("id")
-        .maybeSingle();
-      if (attemptError || !updated) throw new Error("OTP attempt update failed");
-      return jsonResponse({ error: "Invalid verification code." }, 400);
-    }
-
-    const { data: consumed, error: consumeError } = await admin
-      .from("password_reset_otps")
-      .update({ used_at: new Date().toISOString() })
-      .eq("id", record.id)
-      .eq("attempts", record.attempts)
-      .is("used_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .select("id")
-      .maybeSingle();
-    if (consumeError || !consumed) {
-      return jsonResponse({ error: "Verification code is invalid or expired." }, 400);
-    }
+    const { data: valid, error: consumeError } = await admin.rpc("consume_password_reset_otp", { p_phone_e164: phone, p_candidate_hash: candidateHash });
+    if (consumeError) throw new Error("OTP verification failed");
+    if (!valid) return jsonResponse({ error: "Verification code is invalid or expired." }, request, 400);
 
     const resetToken = generateResetToken();
     const tokenHash = await hashValue(`${resetToken}:${secret}`);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const { error: insertError } = await admin.from("password_reset_tokens").insert({
-      phone,
-      token_hash: tokenHash,
-      expires_at: expiresAt,
-    });
+    const { error: insertError } = await admin.from("password_reset_tokens").insert({ phone_e164: phone, token_hash: tokenHash, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() });
     if (insertError) throw new Error("Reset token storage failed");
-
-    return jsonResponse({ ok: true, resetToken });
+    return jsonResponse({ ok: true, resetToken }, request);
   } catch {
-    console.error("verify-otp processing failed");
-    return jsonResponse({ error: "Unable to verify code right now." }, 500);
+    console.error("[verify-otp] OTP verification processing failed");
+    return jsonResponse({ error: "Unable to verify code right now." }, request, 500);
   }
 });

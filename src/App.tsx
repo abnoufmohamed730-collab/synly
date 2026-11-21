@@ -16,6 +16,7 @@ import { CatalogPage } from "./pages/catalog";
 import { ProfilePage } from "./pages/profile";
 import { UserMapDashboardPage } from "./pages/user-map-dashboard";
 import { UserRequestsPage } from "./pages/user-requests";
+import { UserCatalogPage } from "./pages/user-catalog";
 import { ShopsPage } from "./pages/shops";
 import { PageTransition } from "./components/PageTransition";
 import { DevTestAccountsPage } from "./pages/dev-test-accounts";
@@ -43,6 +44,7 @@ export default function App() {
                     <Route element={<DashboardLayout />}>
                       <Route path="requests" element={<UserRequestsPage />} />
                       <Route path="shops" element={<ShopsPage />} />
+                      <Route path="catalog" element={<UserCatalogPage />} />
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
                   </Route>

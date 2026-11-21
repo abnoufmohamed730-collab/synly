@@ -12,6 +12,7 @@ import {
   MapPin,
   ClipboardList,
   Home,
+  ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
@@ -39,6 +40,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
         { to: "/user", label: t("common.home"), icon: Home, end: true },
         { to: "/user/requests", label: t("sidebar.myRequests"), icon: ClipboardList, end: false },
         { to: "/user/shops", label: t("sidebar.nearbyCenters"), icon: MapPin, end: false },
+        { to: "/user/catalog", label: "Services & parts", icon: ShoppingBag, end: false },
         { to: "/user/profile", label: t("common.profile"), icon: Settings, end: false },
       ];
 

@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
 import { LanguageSwitcher } from "./language-switcher";
+import { NotificationBell } from "./NotificationBell";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 
@@ -81,6 +82,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
 
         {/* Global Language Switcher */}
         <LanguageSwitcher />
+        <NotificationBell />
 
         {/* Theme toggle */}
         <button
