@@ -3,24 +3,11 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { getCustomerRlsClient, createLiveFixture, cleanupLiveFixture, provisionLiveFixture, type LiveFixture } from "./fixtures/phase1-phase2-live";
 
-test.use({
-  launchOptions: { headless: false, slowMo: 1000 },
-  viewport: { width: 1280, height: 720 },
-  video: { mode: "on", size: { width: 1280, height: 720 } },
-});
+test.use({ launchOptions: { headless: false, slowMo: 1000 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
 
 let fixture: LiveFixture | undefined;
-
-test.beforeEach(async () => {
-  fixture = await createLiveFixture();
-  await provisionLiveFixture(fixture);
-});
-
-test.afterEach(async () => {
-  if (!fixture) return;
-  await cleanupLiveFixture(fixture);
-  fixture = undefined;
-});
+test.beforeEach(async () => { fixture = await createLiveFixture(); await provisionLiveFixture(fixture); });
+test.afterEach(async () => { if (fixture) { await cleanupLiveFixture(fixture); fixture = undefined; } });
 
 test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", async ({ browser }) => {
   test.setTimeout(180000);
@@ -29,16 +16,9 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
   const baseUrl = process.env.DYAD_TEST_BASE_URL ?? "http://localhost:32100";
   const videoDirectory = resolve(process.cwd(), "test-videos");
   await mkdir(videoDirectory, { recursive: true });
-  const userContext = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    recordVideo: { dir: videoDirectory, size: { width: 1280, height: 720 } },
-    permissions: ["geolocation"],
-    geolocation: { latitude: 30.0444, longitude: 31.2357 },
-  });
-  const vendorContext = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    recordVideo: { dir: videoDirectory, size: { width: 1280, height: 720 } },
-  });
+  const video = { dir: videoDirectory, size: { width: 1280, height: 720 } };
+  const userContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: video, permissions: ["geolocation"], geolocation: { latitude: 30.0444, longitude: 31.2357 } });
+  const vendorContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: video });
   const userPage = await userContext.newPage();
   const vendorPage = await vendorContext.newPage();
   const userVideo = userPage.video();
@@ -47,7 +27,7 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
 
   try {
     await Promise.all([userPage.goto(gotoApp("/login")), vendorPage.goto(gotoApp("/login"))]);
-
+    await Promise.all([userPage.waitForTimeout(1200), vendorPage.waitForTimeout(1200)]);
     await userPage.getByLabel("Email").fill("test.driver@synly.dev");
     await userPage.getByLabel("Password", { exact: true }).fill(currentFixture.customerPassword);
     await userPage.getByRole("button", { name: "Sign In" }).click();
@@ -75,13 +55,16 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
     await userPage.waitForTimeout(1200);
     await userPage.reload();
     await expect(userPage.getByLabel("Full Name")).toHaveValue(updatedName);
+    await userPage.waitForTimeout(1200);
 
     await userPage.goto(gotoApp("/user/shops"));
+    await userPage.waitForTimeout(1200);
     await userPage.getByRole("button", { name: "Use my location" }).click();
     await expect(userPage.getByText("Synly Live Test Center", { exact: true })).toBeVisible({ timeout: 20000 });
     await userPage.waitForTimeout(1200);
 
     await vendorPage.goto(gotoApp("/dashboard/requests"));
+    await vendorPage.waitForTimeout(1200);
     await expect(vendorPage.getByRole("heading", { name: "Requests Management" })).toBeVisible();
     await expect(vendorPage.getByText("Loading request queue…")).toHaveCount(0);
 
@@ -109,7 +92,6 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
     await expect(vendorPage.getByText(currentFixture.requestDescription, { exact: true })).toBeVisible({ timeout: 20000 });
     await vendorPage.waitForTimeout(1200);
     const vendorRequestCard = vendorPage.locator("div.glass-card").filter({ hasText: currentFixture.requestDescription });
-    await expect(vendorRequestCard).toBeVisible();
     await vendorRequestCard.getByRole("button", { name: "Send offer" }).click();
     const offerDialog = vendorPage.getByRole("dialog");
     await offerDialog.getByLabel("Offer price (EGP)").fill("450");
@@ -130,33 +112,22 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
     await expect(vendorRequestCard.getByText("in progress", { exact: true })).toBeVisible();
 
     const session = await userPage.evaluate(() => {
-      const storageKey = Object.keys(window.localStorage).find((key) => key.endsWith("-auth-token"));
-      if (!storageKey) throw new Error("Supabase browser session storage was not found.");
-      const value = JSON.parse(window.localStorage.getItem(storageKey) ?? "null");
+      const key = Object.keys(localStorage).find((candidate) => candidate.endsWith("-auth-token"));
+      if (!key) throw new Error("Supabase browser session storage was not found.");
+      const value = JSON.parse(localStorage.getItem(key) ?? "null");
       if (!value?.access_token || !value?.refresh_token) throw new Error("Supabase browser session is incomplete.");
       return { accessToken: value.access_token as string, refreshToken: value.refresh_token as string };
     });
     const customerClient = await getCustomerRlsClient(session.accessToken, session.refreshToken);
-    const { data: requestRows, error: requestReadError } = await currentFixture.admin
-      .from("service_requests")
-      .select("id")
-      .eq("customer_id", currentFixture.customer.id)
-      .eq("description", currentFixture.requestDescription)
-      .single();
-    expect(requestReadError, "The test request should be identifiable for the RLS-scoped audit assertion").toBeNull();
-    const { data: auditEvents, error: auditError } = await customerClient
-      .from("request_status_events")
-      .select("from_status,to_status")
-      .eq("request_id", requestRows!.id)
-      .order("created_at");
-    expect(auditError, "The customer should be allowed to read their request audit events").toBeNull();
-    const transitions = auditEvents?.map((event) => event.to_status) ?? [];
-    expect(transitions, "The append-only audit trail should record request creation, offer, acceptance, and job start").toEqual(expect.arrayContaining(["pending", "offered", "accepted", "in_progress"]));
+    const { data: requestRow, error: requestReadError } = await currentFixture.admin.from("service_requests").select("id").eq("customer_id", currentFixture.customer.id).eq("description", currentFixture.requestDescription).single();
+    expect(requestReadError, "The test request should be identifiable for the RLS audit assertion").toBeNull();
+    const { data: auditEvents, error: auditError } = await customerClient.from("request_status_events").select("from_status,to_status").eq("request_id", requestRow!.id).order("created_at");
+    expect(auditError, "Customer should be able to read own audit events").toBeNull();
+    expect(auditEvents?.map((event) => event.to_status), "Audit trail records request lifecycle").toEqual(expect.arrayContaining(["pending", "offered", "accepted", "in_progress"]));
   } finally {
     await Promise.allSettled([userContext.close(), vendorContext.close()]);
-    const userVideoPath = await userVideo?.path();
-    const vendorVideoPath = await vendorVideo?.path();
-    if (userVideoPath) await rename(userVideoPath, resolve(videoDirectory, "user-flow.webm"));
-    if (vendorVideoPath) await rename(vendorVideoPath, resolve(videoDirectory, "vendor-flow.webm"));
+    const [userPath, vendorPath] = await Promise.all([userVideo?.path(), vendorVideo?.path()]);
+    if (userPath) await rename(userPath, resolve(videoDirectory, "user-flow.webm"));
+    if (vendorPath) await rename(vendorPath, resolve(videoDirectory, "vendor-flow.webm"));
   }
 });
