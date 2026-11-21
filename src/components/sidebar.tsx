@@ -1,4 +1,5 @@
-import { NavLink, useNavigate, useSignOut } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
 import {
   LayoutDashboard,
