@@ -246,6 +246,11 @@ export function LoginPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <div className="flex justify-end">
+                      <Link to="/forgot-password" className="text-xs font-semibold text-blue-300 transition-colors hover:text-orange-300">
+                        {t("login.forgotPassword")}
+                      </Link>
+                    </div>
                   </div>
 
                   {/* Uber/inDrive style "Keep me signed in" toggle */}
