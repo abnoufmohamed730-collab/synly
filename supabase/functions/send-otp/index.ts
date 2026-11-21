@@ -3,6 +3,7 @@ import {
   createAdminClient,
   generateSixDigitOtp,
   getRequiredSecret,
+  hasRequiredSecrets,
   handleOptions,
   hashValue,
   isE164,
@@ -44,6 +45,11 @@ serve(async (request) => {
   const phone = typeof payload?.phone === "string" ? payload.phone.trim() : "";
   const channel = payload?.channel;
   if (!isE164(phone) || (channel !== "whatsapp" && channel !== "sms")) return jsonResponse({ error: "Enter a valid E.164 phone number and delivery channel." }, request, 400);
+  if (!hasRequiredSecrets(["OTP_HASH_SECRET"])) return jsonResponse({ error: "Password recovery is temporarily unavailable." }, request, 503);
+  const providerSecrets = channel === "whatsapp"
+    ? ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_OTP_TEMPLATE"]
+    : ["SMS_PROVIDER_SID", "SMS_PROVIDER_TOKEN", "SMS_FROM_NUMBER"];
+  if (!hasRequiredSecrets(providerSecrets)) return jsonResponse({ error: `${channel === "whatsapp" ? "WhatsApp" : "SMS"} delivery is not configured.` }, request, 503);
 
   try {
     const admin = createAdminClient();

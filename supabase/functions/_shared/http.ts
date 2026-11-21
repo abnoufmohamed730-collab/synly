@@ -1,13 +1,37 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const allowedOrigins = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "http://localhost:42101")
-  .split(",")
-  .map((origin) => origin.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+const developmentOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:42101",
+];
+
+function parseOrigin(value: string): string | null {
+  const candidate = value.trim().replace(/\/+$/, "");
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username || parsed.password) return null;
+    const localHttp = parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+    if (parsed.protocol !== "https:" && !localHttp) return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function getAllowedOrigins(): Set<string> {
+  const configured = (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "")
+    .split(",")
+    .map(parseOrigin)
+    .filter((origin): origin is string => Boolean(origin));
+  return new Set([...developmentOrigins, ...configured]);
+}
 
 export function corsHeadersFor(request: Request): Record<string, string> | null {
-  const origin = request.headers.get("Origin")?.replace(/\/$/, "");
-  if (!origin || !allowedOrigins.includes(origin)) return null;
+  const rawOrigin = request.headers.get("Origin");
+  const origin = rawOrigin ? parseOrigin(rawOrigin) : null;
+  if (!origin || !getAllowedOrigins().has(origin)) return null;
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -46,6 +70,10 @@ export function getRequiredSecret(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`Missing required configuration: ${name}`);
   return value;
+}
+
+export function hasRequiredSecrets(names: string[]): boolean {
+  return names.every((name) => Boolean(Deno.env.get(name)?.trim()));
 }
 
 export function toHex(bytes: Uint8Array): string {

@@ -1,18 +1,21 @@
 # Phase 3 recovery, catalog, orders, and notifications
 
-## Password recovery functions
+## Password recovery Edge Function secrets
 
-`send-otp`, `verify-otp`, and `reset-password` use the live `profiles.user_id` / `profiles.phone_e164` schema. OTPs and reset tokens are stored only as hashes; OTP verification is atomic and capped at five attempts. OTP sends use an atomic per-phone 60-second cooldown and a five-per-hour limit. CORS allows only origins listed in `APP_ALLOWED_ORIGINS`; the local default is `http://localhost:42101`. Set the exact production and preview origins as a comma-separated Supabase Edge Function secret.
+Add these exact names in **Supabase → Edge Functions → Secrets**. Never add the service-role key to browser variables or commit secret values.
 
-Required Edge Function secrets:
+- `SUPABASE_URL` — project URL, e.g. `https://<project-ref>.supabase.co`.
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role/secret key; server-side only.
+- `OTP_HASH_SECRET` — a unique, high-entropy random string used to hash OTPs and reset tokens.
+- `APP_ALLOWED_ORIGINS` — optional comma-separated list of exact origins. Example: `https://synly.example.com,https://preview.synly.example.com`. Each entry must be an origin with no path, query, or credentials. Whitespace and trailing slash(es) are normalized. Non-local origins must use HTTPS.
+- WhatsApp Cloud API: `WHATSAPP_ACCESS_TOKEN` (opaque bearer token), `WHATSAPP_PHONE_NUMBER_ID` (Meta phone-number ID), `WHATSAPP_OTP_TEMPLATE` (approved template name; its first body parameter receives the code).
+- Twilio SMS: `SMS_PROVIDER_SID` (Account SID, usually `AC…`), `SMS_PROVIDER_TOKEN` (Auth Token), `SMS_FROM_NUMBER` (Twilio-enabled E.164 sender number such as `+15551234567`).
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OTP_HASH_SECRET` — unique high-entropy value
-- WhatsApp: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_OTP_TEMPLATE`
-- Twilio: `SMS_PROVIDER_SID`, `SMS_PROVIDER_TOKEN`, `SMS_FROM_NUMBER`
+The three local origins `http://localhost:5173`, `http://127.0.0.1:5173`, and `http://localhost:42101` are always allowlisted. Configured HTTPS production/preview origins are added to them; the allowlist is exact and never uses `*`. Invalid configured entries are ignored. Browser requests from an origin with a path are rejected.
 
-The send endpoint deliberately responds generically whether or not the phone matches an account. Provider delivery failures and other sensitive values are not logged. The configured WhatsApp template must accept the OTP as its first body parameter.
+`send-otp` checks `OTP_HASH_SECRET` and the selected channel's provider secrets before looking up the phone number. If required configuration is missing, it returns a channel-specific `503` without creating or returning an OTP; there is no demo-code or OTP-in-response fallback. Once configured, delivery is sent through the selected provider. Unknown phone numbers receive the same generic accepted response as known numbers. Provider failures are logged with a static message only and receive that same generic response to avoid account enumeration. Logs and responses never contain codes, reset tokens, or secret values.
+
+OTP records and reset tokens are hashed; OTP verification is atomic and capped at five attempts. OTP sends have an atomic per-phone 60-second cooldown and a five-per-hour limit. Configure an approved WhatsApp template before selecting that channel. To test without sending, use a test phone/provider configuration; the function intentionally does not reveal the OTP to the browser or logs.
 
 ## Catalog and orders
 
