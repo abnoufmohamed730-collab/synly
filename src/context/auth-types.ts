@@ -19,6 +19,7 @@ export interface User {
   email: string;
   businessName: string;
   serviceType: string;
+  description?: string;
   location: string;
   operatingHours: string;
   status: "online" | "offline";
@@ -39,7 +40,6 @@ export interface User {
   socialFacebook?: string;
   socialWhatsApp?: string;
   socialInstagram?: string;
-  lastLoginAt?: string;
   deviceSessions?: SessionInfo[];
 }
 
@@ -49,6 +49,7 @@ export interface RegisterData {
   email: string;
   password: string;
   phone: string;
+  locale?: string;
   carModel?: string;
   plateNumber?: string;
   yearOfManufacture?: string;
@@ -85,24 +86,13 @@ export interface AuthContextType {
   deviceSessions: SessionInfo[];
   currentSession: SessionInfo | null;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: (options?: { allSessions?: boolean }) => Promise<void>;
   logoutAllSessions: () => Promise<void>;
   revokeDeviceSession: (sessionId: string) => Promise<void>;
   switchMode: (newMode: AppMode) => Promise<void>;
   setMode: (newMode: AppMode) => Promise<void>;
-  updateUserProfile: (data: Partial<User>) => void;
-  updateUser: (data: Partial<User>) => void;
+  updateUserProfile: (data: Partial<User>) => Promise<void>;
+  updateUser: (data: Partial<User>) => Promise<void>;
   refreshSession: () => Promise<void>;
-}
-
-export interface PersistedAuthSession {
-  version: 1;
-  token: string;
-  user: User;
-  activeMode: AppMode;
-  rememberMe: boolean;
-  createdAt: number;
-  expiresAt: number;
-  deviceSessions: SessionInfo[];
 }

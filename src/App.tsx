@@ -9,6 +9,7 @@ import { WelcomePage } from "./pages/Welcome";
 import { LoginPage } from "./pages/login";
 import { ForgotPasswordPage } from "./pages/forgot-password";
 import { RegisterPage } from "./pages/register";
+import { AuthCallbackPage } from "./pages/auth-callback";
 import { DashboardPage } from "./pages/dashboard";
 import { RequestsPage } from "./pages/requests";
 import { CatalogPage } from "./pages/catalog";
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* Protected User Experience: accessible by car owners & vendors */}
               <Route element={<ProtectedRoute allowedRoles={["user", "vendor"]} requiredMode="user" />}>

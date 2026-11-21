@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
@@ -12,11 +12,8 @@ import {
   Lock,
   ArrowRight,
   CheckCircle,
-  Car,
-  Store,
   ShieldCheck,
   Zap,
-  Sparkles,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -35,15 +32,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If already authenticated, redirect or allow continuation
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const defaultDestination = role === "vendor" ? "/dashboard" : "/user";
-      const target = location.state?.from?.pathname || defaultDestination;
-      // If user landed on login explicitly while logged in, allow them to navigate
-    }
-  }, [isAuthenticated, user, role, location.state]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -53,8 +41,7 @@ export function LoginPage() {
       await login(email, password, remember);
       toast.success(t("auth.sessionActive"));
 
-      const isVendor = email.toLowerCase().includes("vendor") || email.toLowerCase().includes("workshop");
-      const defaultTarget = isVendor ? "/dashboard" : "/user";
+      const defaultTarget = role === "vendor" ? "/dashboard" : "/user";
       const destination = location.state?.from?.pathname || defaultTarget;
 
       navigate(destination, { replace: true });
@@ -62,16 +49,6 @@ export function LoginPage() {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleQuickDemo = (type: "user" | "vendor") => {
-    if (type === "user") {
-      setEmail("ahmed.driver@synly.app");
-      setPassword("Pass123456");
-    } else {
-      setEmail("alahram.workshop@vendor.com");
-      setPassword("Pass123456");
     }
   };
 
@@ -168,31 +145,6 @@ export function LoginPage() {
                   {t("login.subtitle")}
                 </CardDescription>
 
-                {/* Quick Demo Credentials Tabs (Uber / inDrive style quick switch) */}
-                <div className="pt-2">
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-center gap-1">
-                    <Sparkles className="h-3 w-3 text-orange-400" />
-                    <span>{t("auth.quickLogin")}</span>
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo("user")}
-                      className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 text-xs font-medium text-slate-200 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Car className="h-3.5 w-3.5 text-blue-400" />
-                      <span>{t("auth.asUser")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo("vendor")}
-                      className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-orange-500/10 hover:border-orange-500/30 text-xs font-medium text-slate-200 transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Store className="h-3.5 w-3.5 text-orange-400" />
-                      <span>{t("auth.asVendor")}</span>
-                    </button>
-                  </div>
-                </div>
               </CardHeader>
 
               <CardContent className="space-y-5 pt-1">

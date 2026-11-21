@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/auth-context";
+import { UserProfileForm } from "../components/profile/UserProfileForm";
+import { fetchProfileSnapshot, savePreferences as savePreferencesToDatabase } from "../services/profile-service";
+import { supabase } from "../integrations/supabase/client";
 import { mockMechanics, Mechanic } from "../lib/mock-data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -20,151 +23,7 @@ export function ProfilePage() {
 }
 
 function UserProfile() {
-  const { user } = useAuth();
-  const [form, setForm] = useState({
-    name: "Ahmed Mohamed",
-    phone: "+20 100 123 4567",
-    email: user?.email || "ahmed@email.com",
-    carModel: "Hyundai Elantra 2021",
-    plate: "ABC 1234",
-  });
-  const [radius, setRadius] = useState("15");
-  const [notifications, setNotifications] = useState(true);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
-        <p className="text-muted-foreground">Manage your personal info and vehicle</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Personal Info */}
-        <Card className="glass-card lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-primary" />
-              Personal Information
-            </CardTitle>
-            <CardDescription>Update your contact details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <Button
-              onClick={() => toast.success("Profile updated")}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Vehicle */}
-        <Card className="glass-card h-fit">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Car className="h-5 w-5 text-primary" />
-              My Vehicle
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <Label>Car Model</Label>
-              <Input value={form.carModel} onChange={(e) => setForm({ ...form, carModel: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Plate Number</Label>
-              <Input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value })} />
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => toast.success("Vehicle updated")}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Vehicle
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Alert Radius</CardTitle>
-            <CardDescription>Set the radius for nearby service alerts</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Distance Radius</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={radius}
-                  onChange={(e) => setRadius(e.target.value)}
-                  className="flex-1 accent-orange-500"
-                />
-                <span className="text-sm font-medium text-foreground w-16">{radius} km</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You'll receive alerts from centers within {radius} km.
-              </p>
-            </div>
-            <Button
-              onClick={() => toast.success("Alert radius updated")}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Radius
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Manage your notification preferences</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Push Notifications</p>
-                <p className="text-xs text-muted-foreground">Receive alerts for request updates</p>
-              </div>
-              <Switch checked={notifications} onCheckedChange={setNotifications} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Email Notifications</p>
-                <p className="text-xs text-muted-foreground">Get updates via email</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Button
-              onClick={() => toast.success("Preferences saved")}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Preferences
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+  return <UserProfileForm />;
 }
 
 function VendorProfile() {
@@ -175,26 +34,83 @@ function VendorProfile() {
     location: user?.location || "",
     operatingHours: user?.operatingHours || "",
     email: user?.email || "",
-    phone: "+20 100 123 4567",
-    about: "Full-service auto care center specializing in mechanical repair, electrical diagnostics, and preventive maintenance. Serving the community with certified technicians and genuine parts.",
+    phone: String(user?.phoneNumbers || ""),
+    about: user?.description || "",
   });
   const [mechanics, setMechanics] = useState<Mechanic[]>(mockMechanics);
   const [radius, setRadius] = useState("25");
   const [notifications, setNotifications] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editMechanic, setEditMechanic] = useState<Mechanic | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [newMechanic, setNewMechanic] = useState({ name: "", specialization: "", phone: "", email: "" });
 
-  const handleSave = () => {
-    updateUser({
-      businessName: form.businessName,
-      serviceType: form.serviceType,
-      location: form.location,
-      operatingHours: form.operatingHours,
-      email: form.email,
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    setLoading(true);
+    fetchProfileSnapshot(user.id).then((snapshot) => {
+      if (!active) return;
+      const center = snapshot.serviceCenter;
+      setForm({
+        businessName: center?.name ?? "",
+        serviceType: center?.service_type ?? "",
+        location: center?.address ?? (center ? `${center.latitude}, ${center.longitude}` : ""),
+        operatingHours: snapshot.hours[0]?.hours_text ?? "",
+        email: user.email,
+        phone: center?.phone_e164 ?? "",
+        about: center?.description ?? "",
+      });
+      setRadius(String(snapshot.preferences?.alert_radius_km ?? 25));
+      setNotifications(snapshot.preferences?.notifications_enabled ?? true);
+    }).catch((error: Error) => {
+      toast.error(error.message || "Could not load your business profile.");
+    }).finally(() => {
+      if (active) setLoading(false);
     });
-    toast.success("Profile updated successfully");
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await updateUser({
+        businessName: form.businessName,
+        serviceType: form.serviceType,
+        description: form.about,
+        location: form.location,
+        operatingHours: form.operatingHours,
+        phoneNumbers: form.phone,
+      });
+      if (form.email.trim() !== user.email) {
+        const callbackUrl = new URL("/auth/callback", window.location.origin).href;
+        const { error } = await supabase.auth.updateUser({ email: form.email.trim() }, { emailRedirectTo: callbackUrl });
+        if (error) throw error;
+        toast.success("Confirm the email change using the message sent to your new address.");
+      } else {
+        toast.success("Profile updated successfully");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save your business profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePreferences = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await savePreferencesToDatabase(user.id, { alertRadius: Number(radius), notificationsEnabled: notifications });
+      toast.success("Preferences saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save preferences.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddMechanic = () => {
@@ -331,8 +247,8 @@ function VendorProfile() {
                   <p className="font-medium text-foreground">Verified Business</p>
                   <p className="text-sm text-muted-foreground">Your business has been verified by Synly</p>
                 </div>
-                <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30" variant="outline">
-                  Verified
+                <Badge className={`ml-auto border ${user?.verified ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-500/20 text-amber-300 border-amber-500/30"}`} variant="outline">
+                  {user?.verified ? "Verified" : "Pending review"}
                 </Badge>
               </div>
             </CardContent>

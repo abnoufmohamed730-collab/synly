@@ -3,243 +3,186 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
-import type {
-  AppMode,
-  AuthContextType,
-  PersistedAuthSession,
-  RegisterData,
-  Role,
-  SessionInfo,
-  User,
-} from "./auth-types";
-import {
-  createDeviceSessions,
-  createPersistedSession,
-  createUserId,
-  readStoredSession,
-  REMEMBERED_EXPIRY_MS,
-  SESSION_STORAGE_KEY,
-  TRANSIENT_EXPIRY_MS,
-  writeStoredSession,
-} from "./auth-session";
+import type { AppMode, AuthContextType, RegisterData, Role, SessionInfo, User } from "./auth-types";
+import { supabase } from "../integrations/supabase/client";
+import { readStoredMode, writeStoredMode } from "./auth-session";
+import { buildSignupMetadata, fetchProfileSnapshot, mapSnapshotToUser } from "../services/profile-service";
 
 export type { AppMode, AuthContextType, RegisterData, Role, SessionInfo, User } from "./auth-types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-function getDefaultMode(role: Role): AppMode {
-  return role;
-}
-
-function buildAuthenticatedUser(email: string, role: Role, sessions: SessionInfo[]): User {
-  const isVendor = role === "vendor";
-  return {
-    id: createUserId(),
-    email: email.trim(),
-    businessName: isVendor ? "Al-Ahram Auto Center" : "Ahmed Mohamed",
-    serviceType: isVendor ? "Mechanical Repair & Diagnostics" : "",
-    location: "Nasr City, Cairo",
-    operatingHours: isVendor ? "8:00 AM - 10:00 PM" : "",
-    status: "online",
-    verified: true,
-    role,
-    username: email.split("@")[0],
-    phone: "+20 100 123 4567",
-    carModel: isVendor ? undefined : "Hyundai Elantra 2022",
-    plateNumber: isVendor ? undefined : "ABC 1234",
-    lastLoginAt: new Date().toISOString(),
-    deviceSessions: sessions,
-  };
-}
-
-function buildRegisteredUser(data: RegisterData, sessions: SessionInfo[]): User {
-  return {
-    id: createUserId(),
-    email: data.email.trim(),
-    businessName:
-      data.role === "vendor"
-        ? data.businessName || "New Service Center"
-        : data.username || "Synly User",
-    serviceType: data.serviceType || "",
-    location: data.location || "Cairo, Egypt",
-    operatingHours: data.workingHours || "9:00 AM - 10:00 PM",
-    status: "online",
-    verified: false,
-    role: data.role,
-    username: data.username,
-    phone: data.phone,
-    carModel: data.carModel,
-    plateNumber: data.plateNumber,
-    yearOfManufacture: data.yearOfManufacture,
-    transmission: data.transmission,
-    fuelType: data.fuelType,
-    emergencyContactName: data.emergencyContactName,
-    emergencyContactPhone: data.emergencyContactPhone,
-    phoneNumbers: data.phoneNumbers,
-    emergencyLine: data.emergencyLine,
-    paymentMethods: data.paymentMethods,
-    socialFacebook: data.socialFacebook,
-    socialWhatsApp: data.socialWhatsApp,
-    socialInstagram: data.socialInstagram,
-    lastLoginAt: new Date().toISOString(),
-    deviceSessions: sessions,
-  };
-}
+const EMPTY_SESSIONS: SessionInfo[] = [];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [activeMode, setActiveMode] = useState<AppMode>("user");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [activeMode, setActiveMode] = useState<AppMode>(readStoredMode());
   const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
-  const [deviceSessions, setDeviceSessions] = useState<SessionInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const applySession = useCallback((session: PersistedAuthSession | null) => {
-    setUser(session?.user ?? null);
-    setActiveMode(session?.activeMode ?? "user");
-    setRememberMe(session?.rememberMe ?? true);
-    setSessionExpiresAt(session?.expiresAt ?? null);
-    setDeviceSessions(session?.deviceSessions ?? []);
-  }, []);
+  const hydrateUser = useCallback(async (authUser: { id: string; email?: string } | null, expiresAt?: number | null) => {
+    if (!authUser) {
+      setUser(null);
+      setSessionExpiresAt(null);
+      setActiveMode("user");
+      writeStoredMode("user");
+      setIsLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    applySession(readStoredSession());
-    setIsLoading(false);
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key !== SESSION_STORAGE_KEY) return;
-      if (!event.newValue) {
-        applySession(null);
-        return;
-      }
-      applySession(readStoredSession());
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [applySession]);
-
-  useEffect(() => {
-    if (!sessionExpiresAt) return;
-    const interval = window.setInterval(() => {
-      if (Date.now() >= sessionExpiresAt) {
-        writeStoredSession(null);
-        applySession(null);
-      }
-    }, 60_000);
-    return () => window.clearInterval(interval);
-  }, [sessionExpiresAt, applySession]);
-
-  const commitSession = useCallback((session: PersistedAuthSession) => {
-    writeStoredSession(session);
-    applySession(session);
-  }, [applySession]);
-
-  const login = useCallback(async (email: string, password: string, remember = true) => {
-    setIsLoading(true);
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 600));
-      if (!email.trim() || !password.trim()) {
-        throw new Error("Please enter both email and password");
-      }
-      const normalizedEmail = email.trim().toLowerCase();
-      const role: Role = /vendor|workshop|center/.test(normalizedEmail) ? "vendor" : "user";
-      const sessions = createDeviceSessions();
-      const authenticatedUser = buildAuthenticatedUser(email, role, sessions);
-      commitSession(createPersistedSession(authenticatedUser, getDefaultMode(role), remember, sessions));
+      const snapshot = await fetchProfileSnapshot(authUser.id);
+      const nextUser = mapSnapshotToUser(snapshot, authUser);
+      setUser(nextUser);
+      setSessionExpiresAt(expiresAt ?? null);
+      setActiveMode((current) => {
+        const next = nextUser.role === "vendor" ? current : "user";
+        writeStoredMode(next);
+        return next;
+      });
+    } catch {
+      setUser(null);
+      setSessionExpiresAt(expiresAt ?? null);
     } finally {
       setIsLoading(false);
     }
-  }, [commitSession]);
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void hydrateUser(session?.user ?? null, session?.expires_at ? session.expires_at * 1000 : null);
+    });
+    return () => subscription.unsubscribe();
+  }, [hydrateUser]);
+
+  const login = useCallback(async (email: string, password: string, _remember = true) => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
-    try {
-      await new Promise((resolve) => window.setTimeout(resolve, 800));
-      const sessions = createDeviceSessions();
-      const newUser = buildRegisteredUser(data, sessions);
-      commitSession(createPersistedSession(newUser, data.role, true, sessions));
-    } finally {
+    const callbackUrl = new URL("/auth/callback", window.location.origin).href;
+    const { data: result, error } = await supabase.auth.signUp({
+      email: data.email.trim(),
+      password: data.password,
+      options: {
+        emailRedirectTo: callbackUrl,
+        data: buildSignupMetadata(data),
+      },
+    });
+    if (error) {
       setIsLoading(false);
+      throw error;
     }
-  }, [commitSession]);
+    if (!result.session) {
+      setIsLoading(false);
+      return { requiresEmailConfirmation: true };
+    }
+    await hydrateUser(result.user, result.session.expires_at ? result.session.expires_at * 1000 : null);
+    return { requiresEmailConfirmation: false };
+  }, [hydrateUser]);
 
-  const logout = useCallback(async (_options?: { allSessions?: boolean }) => {
+  const logout = useCallback(async (options?: { allSessions?: boolean }) => {
     setIsLoading(true);
-    try {
-      writeStoredSession(null);
-      applySession(null);
-    } finally {
+    const { error } = await supabase.auth.signOut(options?.allSessions ? { scope: "global" } : undefined);
+    if (error) {
       setIsLoading(false);
+      throw error;
     }
-  }, [applySession]);
+    setUser(null);
+    setSessionExpiresAt(null);
+    setActiveMode("user");
+    writeStoredMode("user");
+    setIsLoading(false);
+  }, []);
 
   const logoutAllSessions = useCallback(async () => logout({ allSessions: true }), [logout]);
 
-  const revokeDeviceSession = useCallback(async (sessionId: string) => {
-    setDeviceSessions((current) => {
-      const next = current.filter((session) => session.id !== sessionId);
-      const stored = readStoredSession();
-      if (stored) writeStoredSession({ ...stored, deviceSessions: next });
-      return next;
-    });
+  const revokeDeviceSession = useCallback(async (_sessionId: string) => {
+    throw new Error("Remote device session management is not available yet.");
   }, []);
 
   const switchMode = useCallback(async (newMode: AppMode) => {
-    setActiveMode(newMode);
-    const stored = readStoredSession();
-    if (stored) writeStoredSession({ ...stored, activeMode: newMode });
-  }, []);
+    const mode = newMode === "vendor" && user?.role !== "vendor" ? "user" : newMode;
+    setActiveMode(mode);
+    writeStoredMode(mode);
+  }, [user?.role]);
 
-  const updateUserProfile = useCallback((data: Partial<User>) => {
-    setUser((current) => {
-      if (!current) return null;
-      const updated = { ...current, ...data };
-      const stored = readStoredSession();
-      if (stored) writeStoredSession({ ...stored, user: updated });
-      return updated;
-    });
-  }, []);
+  const updateUserProfile = useCallback(async (data: Partial<User>) => {
+    if (!user) throw new Error("You must be signed in to update your profile.");
+
+    const profileUpdate: Record<string, string> = {};
+    if (data.username !== undefined) profileUpdate.display_name = data.username;
+    else if (data.businessName !== undefined && user.role === "user") profileUpdate.display_name = data.businessName;
+    if (data.phone !== undefined) profileUpdate.phone_e164 = data.phone;
+
+    const requests: PromiseLike<{ error: { message: string } | null }>[] = [];
+    if (Object.keys(profileUpdate).length) {
+      requests.push(supabase.from("profiles").update(profileUpdate).eq("user_id", user.id));
+    }
+    if (user.role === "vendor") {
+      const centerUpdate: Record<string, unknown> = {};
+      if (data.businessName !== undefined) centerUpdate.name = data.businessName;
+      if (data.serviceType !== undefined) centerUpdate.service_type = data.serviceType;
+      if (data.description !== undefined) centerUpdate.description = data.description;
+      if (data.location !== undefined) centerUpdate.address = data.location;
+      if (data.status !== undefined) centerUpdate.is_online = data.status === "online";
+      if (data.phoneNumbers !== undefined) centerUpdate.phone_e164 = String(data.phoneNumbers).split(/[;,]/)[0]?.trim() || null;
+      if (data.emergencyLine !== undefined) centerUpdate.emergency_phone_e164 = data.emergencyLine;
+      if (Object.keys(centerUpdate).length) {
+        requests.push(supabase.from("service_centers").update(centerUpdate).eq("owner_id", user.id));
+      }
+      if (data.operatingHours !== undefined) {
+        const { data: center, error: centerError } = await supabase.from("service_centers").select("id").eq("owner_id", user.id).single();
+        if (centerError) throw new Error(centerError.message);
+        requests.push(supabase.from("service_center_hours").update({ hours_text: data.operatingHours }).eq("service_center_id", center.id));
+      }
+    }
+    const results = await Promise.all(requests);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) throw new Error(failed.error.message);
+    setUser((current) => current ? { ...current, ...data } : current);
+  }, [user]);
 
   const refreshSession = useCallback(async () => {
-    const stored = readStoredSession();
-    if (!stored) return;
-    const expiresAt = Date.now() + (stored.rememberMe ? REMEMBERED_EXPIRY_MS : TRANSIENT_EXPIRY_MS);
-    const updated = { ...stored, expiresAt };
-    writeStoredSession(updated);
-    setSessionExpiresAt(expiresAt);
-  }, []);
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    await hydrateUser(data.session?.user ?? null, data.session?.expires_at ? data.session.expires_at * 1000 : null);
+  }, [hydrateUser]);
 
-  const currentSession = deviceSessions.find((session) => session.isCurrent) ?? deviceSessions[0] ?? null;
+  const currentSession = useMemo(() => null, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        role: user?.role ?? "user",
-        activeMode,
-        mode: activeMode,
-        isAuthenticated: Boolean(user) && !isLoading,
-        isLoading,
-        sessionExpiresAt,
-        rememberMe,
-        deviceSessions,
-        currentSession,
-        login,
-        register,
-        logout,
-        logoutAllSessions,
-        revokeDeviceSession,
-        switchMode,
-        setMode: switchMode,
-        updateUserProfile,
-        updateUser: updateUserProfile,
-        refreshSession,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user,
+      role: user?.role ?? "user",
+      activeMode,
+      mode: activeMode,
+      isAuthenticated: Boolean(user) && !isLoading,
+      isLoading,
+      sessionExpiresAt,
+      rememberMe: true,
+      deviceSessions: EMPTY_SESSIONS,
+      currentSession,
+      login,
+      register,
+      logout,
+      logoutAllSessions,
+      revokeDeviceSession,
+      switchMode,
+      setMode: switchMode,
+      updateUserProfile,
+      updateUser: updateUserProfile,
+      refreshSession,
+    }}>
       {children}
     </AuthContext.Provider>
   );

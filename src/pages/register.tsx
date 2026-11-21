@@ -63,7 +63,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1980 + 1 }, (_, i) => String(currentYear - i));
 
 export function RegisterPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -72,6 +72,7 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Account fields
@@ -170,12 +171,13 @@ export function RegisterPage() {
     setError("");
 
     try {
-      await register({
+      const result = await register({
         role: role!,
         username,
         email,
         password,
         phone,
+        locale: lang,
         carModel,
         plateNumber,
         yearOfManufacture: year,
@@ -199,10 +201,11 @@ export function RegisterPage() {
         socialWhatsApp,
         socialInstagram,
       });
+      setRequiresEmailConfirmation(result.requiresEmailConfirmation);
       setSuccess(true);
       setTimeout(() => {
-        navigate(role === "vendor" ? "/dashboard" : "/user");
-      }, 1500);
+        navigate(result.requiresEmailConfirmation ? "/login" : role === "vendor" ? "/dashboard" : "/user");
+      }, 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -230,7 +233,13 @@ export function RegisterPage() {
               </div>
             </div>
             <h2 className="text-2xl font-bold text-white">{t("register.success")}</h2>
-            <p className="text-slate-300 text-sm">{t("register.successMessage")}</p>
+            <p className="text-slate-300 text-sm">
+              {requiresEmailConfirmation
+                ? lang === "ar"
+                  ? "تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده قبل تسجيل الدخول."
+                  : "Your account was created. Check your email to confirm it before signing in."
+                : t("register.successMessage")}
+            </p>
             <div className="flex items-center justify-center pt-2">
               <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-orange-500" />
             </div>
