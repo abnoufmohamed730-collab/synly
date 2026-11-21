@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { getCustomerRlsClient, createLiveFixture, cleanupLiveFixture, provisionLiveFixture, type LiveFixture } from "./fixtures/phase1-phase2-live";
 
-test.use({ launchOptions: { headless: false, slowMo: 400 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
+test.use({ launchOptions: { headless: false, slowMo: 1000 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
 
 let fixture: LiveFixture | undefined;
 test.beforeEach(async () => { fixture = await createLiveFixture(); await provisionLiveFixture(fixture); });
