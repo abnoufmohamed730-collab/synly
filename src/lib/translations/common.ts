@@ -111,9 +111,11 @@ const common: TranslationModule = {
     "common.youReceiveAlerts": "You'll receive alerts from centers within {radius} km.",
     "common.customerAlerts": "You'll receive alerts from customers within {radius} km.",
     "common.currentLocation": "Current Location",
-    "common.recenter": "Recenter",
-
-    // Header
+        "common.recenter": "Recenter",
+        "common.zoomIn": "Zoom In",
+        "common.zoomOut": "Zoom Out",
+    
+        // Header
     "header.searchRequests": "Search requests...",
     "header.searchCenters": "Search centers & services...",
     "header.dashboard": "Synly Dashboard",
@@ -232,9 +234,11 @@ const common: TranslationModule = {
     "common.youReceiveAlerts": "ستتلقى تنبيهات من المراكز ضمن {radius} كم.",
     "common.customerAlerts": "ستتلقى تنبيهات من العملاء ضمن {radius} كم.",
     "common.currentLocation": "موقعك الحالي",
-    "common.recenter": "إعادة التمركز",
-
-    // Header
+        "common.recenter": "إعادة التمركز",
+        "common.zoomIn": "تكبير",
+        "common.zoomOut": "تصغير",
+    
+        // Header
     "header.searchRequests": "ابحث في الطلبات...",
     "header.searchCenters": "ابحث في المراكز والخدمات...",
     "header.dashboard": "لوحة تحكم Synly",

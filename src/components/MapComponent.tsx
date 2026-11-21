@@ -9,7 +9,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Navigation, Radar, AlertCircle } from "lucide-react";
+import { Navigation, Radar, AlertCircle, Plus, Minus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/language-context";
 
@@ -32,9 +32,7 @@ const createLiveDotIcon = (heading?: number): L.DivIcon =>
   L.divIcon({
     className: "synly-live-dot",
     html: `
-      <div style="position:relative;width:24px;height:24px;${
-        heading ? `transform:rotate(${heading}deg);transform-origin:center;` : ""
-      }">
+      <div style="position:relative;width:24px;height:24px;${heading ? `transform:rotate(${heading}deg);transform-origin:center;` : ""}">
         <div class="absolute inset-0 rounded-full bg-blue-500/30 animate-ping"></div>
         <div style="position:absolute;inset:0;border-radius:9999px;background:#3b82f6;border:2px solid #ffffff;box-shadow:0 0 14px rgba(59,130,246,0.65);"></div>
       </div>
@@ -42,6 +40,65 @@ const createLiveDotIcon = (heading?: number): L.DivIcon =>
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
+
+// Permission notification card (side/corner glassmorphic)
+function PermissionCard({
+  state,
+  onAllow,
+  onDismiss,
+  onRetry,
+  t,
+}: {
+  state: "prompt" | "denied";
+  onAllow: () => void;
+  onDismiss: () => void;
+  onRetry: () => void;
+  t: (key: string) => string;
+}) {
+  const isPrompt = state === "prompt";
+  const title = isPrompt ? t("map.permissionTitle") : t("map.permissionDeniedTitle");
+  const desc = isPrompt ? t("map.permissionDesc") : t("map.permissionDeniedDesc");
+  const primaryLabel = isPrompt ? t("map.permissionAllow") : t("map.permissionRetry");
+  const secondaryLabel = isPrompt ? t("map.permissionDismiss") : "";
+
+  return (
+    <div
+      className="absolute end-4 top-1/2 -translate-y-1/2 z-[1000] w-80 max-w-[90vw] glass-sheet rounded-2xl p-4 shadow-2xl border border-white/10 animate-slide-in-right"
+      role="dialog"
+      aria-live="polite"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <p className="mt-1.5 text-xs text-slate-300 leading-relaxed">{desc}</p>
+        </div>
+        <button
+          onClick={onDismiss}
+          className="flex-shrink-0 p-1 text-slate-400 hover:text-white transition-colors"
+          aria-label={isPrompt ? t("map.permissionDismiss") : "Close"}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          onClick={isPrompt ? onAllow : onRetry}
+          className="flex-1 glass-btn py-2 px-3 bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500/30 text-sm font-medium"
+        >
+          {primaryLabel}
+        </button>
+        {isPrompt && (
+          <button
+            onClick={onDismiss}
+            className="flex-1 glass-btn py-2 px-3 border-white/10 text-slate-300 hover:bg-white/10 text-sm font-medium"
+          >
+            {secondaryLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Component to handle geolocation, live follow, and recenter button
 function LocationMarker({
@@ -56,9 +113,12 @@ function LocationMarker({
   const [position, setPosition] = useState<LivePosition | null>(null);
   const [status, setStatus] = useState<"idle" | "locating" | "active" | "error">("idle");
   const [liveFollow, setLiveFollow] = useState(false);
+  const [permissionState, setPermissionState] = useState<"idle" | "granted" | "denied" | "dismissed">("idle");
+
   const liveFollowRef = useRef(false);
   const onLocateRef = useRef(onLocate);
   const onMapDragStartRef = useRef(onMapDragStart);
+  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     onLocateRef.current = onLocate;
@@ -72,15 +132,16 @@ function LocationMarker({
     liveFollowRef.current = liveFollow;
   }, [liveFollow]);
 
-  // Real-time street-level movement tracking via watchPosition
+  // Start watchPosition when permission is granted
   useEffect(() => {
+    if (permissionState !== "granted") return;
     if (!("geolocation" in navigator)) {
       setStatus("error");
-      toast.error(t("map.gpsDenied"));
+      setPermissionState("denied");
       return;
     }
     setStatus("locating");
-    const watchId = navigator.geolocation.watchPosition(
+    const id = navigator.geolocation.watchPosition(
       (coords) => {
         const { latitude, longitude, accuracy, heading, speed } = coords.coords;
         const next: LivePosition = { lat: latitude, lng: longitude, accuracy, heading, speed };
@@ -92,12 +153,18 @@ function LocationMarker({
       },
       (error) => {
         setStatus("error");
-        toast.error(t("map.gpsDenied"));
+        setPermissionState("denied");
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [map, t]);
+    watchIdRef.current = id;
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [permissionState, map, t]);
 
   // Pause live follow when the user manually drags the map
   useEffect(() => {
@@ -112,27 +179,43 @@ function LocationMarker({
     };
   }, [map]);
 
-  const handleGetLocation = () => {
+  const handleAllow = () => {
     if (!("geolocation" in navigator)) {
+      setPermissionState("denied");
       setStatus("error");
       toast.error(t("map.gpsDenied"));
       return;
     }
+    setStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (coords) => {
         const { latitude, longitude, accuracy, heading, speed } = coords.coords;
         const next: LivePosition = { lat: latitude, lng: longitude, accuracy, heading, speed };
         setPosition(next);
         setStatus("active");
+        setPermissionState("granted");
+        setLiveFollow(true);
+        liveFollowRef.current = true;
         map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
         onLocateRef.current?.();
       },
       (error) => {
+        setPermissionState("denied");
         setStatus("error");
         toast.error(t("map.gpsDenied"));
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
+  };
+
+  const handleDismiss = () => {
+    setPermissionState("dismissed");
+  };
+
+  const handleRetry = () => {
+    setPermissionState("idle");
+    setStatus("idle");
+    handleAllow();
   };
 
   const toggleLiveFollow = () => {
@@ -157,8 +240,23 @@ function LocationMarker({
             : t("map.trackingPaused")
           : null;
 
+  // Show permission card when idle (prompt) or denied
+  const showPermissionCard = permissionState === "idle" || permissionState === "denied";
+
   return (
     <>
+      {/* Permission notification card (side/corner) */}
+      {showPermissionCard && (
+        <PermissionCard
+          state={permissionState === "idle" ? "prompt" : "denied"}
+          onAllow={handleAllow}
+          onDismiss={handleDismiss}
+          onRetry={handleRetry}
+          t={t}
+        />
+      )}
+
+      {/* Live location marker + accuracy circle */}
       {position && (
         <Marker position={[position.lat, position.lng]} icon={icon}>
           <Popup>{t("map.myLocation")}</Popup>
@@ -173,27 +271,50 @@ function LocationMarker({
         />
       )}
 
-      <div className="absolute bottom-24 right-4 z-[1000] flex flex-col items-end gap-2">
-        <button
-          onClick={handleGetLocation}
-          className="w-12 h-12 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-blue-400 flex items-center justify-center shadow-lg hover:bg-slate-800 transition-all"
-          title="موقعي الحالي"
-        >
-          <Navigation className="w-5 h-5" />
-        </button>
+      {/* Map controls: zoom in/out, recenter, live follow, status */}
+      <div className="absolute top-20 end-4 z-[1000] flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => map.zoomOut()}
+            className="glass-btn h-10 w-10 rounded-xl shadow-lg text-white hover:bg-white/10 transition-all interactive-scale"
+            title={t("common.zoomOut")}
+            aria-label={t("common.zoomOut")}
+          >
+            <Minus className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => map.zoomIn()}
+            className="glass-btn h-10 w-10 rounded-xl shadow-lg text-white hover:bg-white/10 transition-all interactive-scale"
+            title={t("common.zoomIn")}
+            aria-label={t("common.zoomIn")}
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => position && map.flyTo([position.lat, position.lng], map.getZoom(), { animate: true })}
+            className="glass-btn h-10 w-10 rounded-xl shadow-lg text-blue-400 hover:bg-blue-500/10 transition-all interactive-scale"
+            title={t("map.myLocation")}
+            aria-label={t("map.myLocation")}
+          >
+            <Navigation className="h-5 w-5" />
+          </button>
+        </div>
 
         <button
           type="button"
           onClick={toggleLiveFollow}
-          className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center shadow-lg transition-all interactive-scale ${
+          disabled={permissionState !== "granted"}
+          className={`w-10 h-10 rounded-xl backdrop-blur-md border flex items-center justify-center shadow-lg transition-all interactive-scale ${
             liveFollow
               ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
-              : "bg-slate-900/80 border-white/10 text-slate-400 hover:bg-slate-800"
+              : permissionState === "granted"
+                ? "bg-slate-900/80 border-white/10 text-slate-400 hover:bg-slate-800"
+                : "bg-slate-900/50 border-white/5 text-slate-500 cursor-not-allowed"
           }`}
           title={liveFollow ? t("map.liveFollowStop") : t("map.liveFollow")}
           aria-label={liveFollow ? t("map.liveFollowStop") : t("map.liveFollow")}
         >
-          <Radar className="w-5 h-5" />
+          <Radar className="h-5 w-5" />
         </button>
 
         {statusContent && (
@@ -232,7 +353,9 @@ export function MapComponent({
       <MapContainer
         center={center}
         zoom={zoom}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
+        doubleClickZoom={true}
+        touchZoom={true}
         style={{ width: "100%", height: "100%", background: "#090A0F" }}
         zoomControl={false}
       >
