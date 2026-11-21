@@ -18,6 +18,7 @@ import { UserMapDashboardPage } from "./pages/user-map-dashboard";
 import { UserRequestsPage } from "./pages/user-requests";
 import { ShopsPage } from "./pages/shops";
 import { PageTransition } from "./components/PageTransition";
+import { DevTestAccountsPage } from "./pages/dev-test-accounts";
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              {import.meta.env.DEV && <Route path="/__dev/seed-test-accounts" element={<DevTestAccountsPage />} />}
 
               {/* Protected User Experience: accessible by car owners & vendors */}
               <Route element={<ProtectedRoute allowedRoles={["user", "vendor"]} requiredMode="user" />}>
