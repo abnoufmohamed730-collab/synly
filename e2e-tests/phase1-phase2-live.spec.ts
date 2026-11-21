@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { getCustomerRlsClient, createLiveFixture, cleanupLiveFixture, provisionLiveFixture, type LiveFixture } from "./fixtures/phase1-phase2-live";
 
-test.use({ launchOptions: { headless: false, slowMo: 1000 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
+test.use({ launchOptions: { headless: false, slowMo: 1200 }, viewport: { width: 1280, height: 720 }, video: { mode: "on", size: { width: 1280, height: 720 } } });
 
 let fixture: LiveFixture | undefined;
 test.beforeEach(async () => { fixture = await createLiveFixture(); await provisionLiveFixture(fixture); });
@@ -29,14 +29,20 @@ test("Phase 1 and Phase 2 live user/vendor flow with separate headed sessions", 
     await Promise.all([userPage.goto(gotoApp("/login")), vendorPage.goto(gotoApp("/login"))]);
     await Promise.all([userPage.waitForTimeout(1200), vendorPage.waitForTimeout(1200)]);
     await userPage.getByLabel("Email").fill("test.driver@synly.dev");
+    await userPage.waitForTimeout(1000);
     await userPage.getByLabel("Password", { exact: true }).fill(currentFixture.customerPassword);
+    await userPage.waitForTimeout(1000);
     await userPage.getByRole("button", { name: "Sign In" }).click();
+    await userPage.waitForTimeout(1000);
     await expect(userPage).toHaveURL(/\/user$/);
     await userPage.waitForTimeout(1200);
 
     await vendorPage.getByLabel("Email").fill("test.vendor@synly.dev");
+    await vendorPage.waitForTimeout(1000);
     await vendorPage.getByLabel("Password", { exact: true }).fill(currentFixture.vendorPassword);
+    await vendorPage.waitForTimeout(1000);
     await vendorPage.getByRole("button", { name: "Sign In" }).click();
+    await vendorPage.waitForTimeout(1000);
     await expect(vendorPage).toHaveURL(/\/dashboard$/);
     await vendorPage.waitForTimeout(1200);
 

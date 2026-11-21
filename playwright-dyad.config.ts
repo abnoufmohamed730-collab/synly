@@ -13,10 +13,8 @@ export default defineConfig({
   reporter: [["json", { outputFile: "test-results/results.json" }]],
   use: {
     baseURL: process.env.DYAD_TEST_BASE_URL || "http://localhost:32100",
-    // Slow motion: Dyad sets DYAD_TEST_SLOW_MO (milliseconds between
-    // actions) while the Tests panel's slow-motion toggle is on, so a run is
-    // easy to follow. Unset means full speed.
-    launchOptions: { slowMo: Number(process.env.DYAD_TEST_SLOW_MO) || 0 },
+    // Keep actions human-readable when running the live Phase 1 & 2 flow.
+    launchOptions: { slowMo: Number(process.env.DYAD_TEST_SLOW_MO) || 1200 },
     channel: "chrome",
     // Off for a preview run: tracing expects browser-global CDP access, which
     // the preview-only automation broker deliberately rejects. The fixture
