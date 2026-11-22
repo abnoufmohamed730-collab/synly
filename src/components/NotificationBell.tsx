@@ -62,7 +62,7 @@ export function NotificationBell() {
     const readAt = new Date().toISOString();
     setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, read_at: readAt } : entry)));
     const { error } = await supabase.from("notifications").update({ read_at: readAt }).eq("id", item.id);
-    if (error) toast.error(t("markReadError"));
+    if (error) toast.error(t("ops.markReadError"));
   };
 
   const unread = items.filter((item) => !item.read_at).length;
@@ -70,8 +70,8 @@ export function NotificationBell() {
     <div className="relative">
       <button
         type="button"
-        aria-label={t("notifications")}
-        onClick={() => setOpen((value) => !value)}
+        aria-label={t("common.notifications")}
+                onClick={() => setOpen((value) => !value)}
         className="relative rounded-xl border border-white/5 p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
       >
         <Bell className="h-4 w-4" />
@@ -84,21 +84,21 @@ export function NotificationBell() {
       {open && (
         <>
           <button
-            aria-label={t("close")}
+            aria-label={t("common.close")}
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
           <div className="absolute end-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-2xl">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <div>
-                <p className="font-semibold text-white">{t("notifications")}</p>
-                <p className="text-xs text-slate-400">{t("liveUpdates")}</p>
+                <p className="font-semibold text-white">{t("ops.notifications")}</p>
+                                <p className="text-xs text-slate-400">{t("ops.liveUpdates")}</p>
               </div>
               <CheckCheck className="h-4 w-4 text-blue-300" />
             </div>
             <div className="max-h-96 overflow-y-auto">
               {items.length === 0 ? (
-                <p className="p-6 text-center text-sm text-slate-400">{t("allCaughtUp")}</p>
+                <p className="p-6 text-center text-sm text-slate-400">{t("ops.allCaughtUp")}</p>
               ) : (
                 items.map((item) => (
                   <button

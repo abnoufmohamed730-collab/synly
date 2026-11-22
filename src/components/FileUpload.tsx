@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, X, FileText, AlertCircle } from "lucide-react";
 import { Label } from "./ui/label";
 import { cn } from "../lib/utils";
+import { useLanguage } from "../context/language-context";
 
 interface FileUploadProps {
   label: string;
@@ -20,6 +21,7 @@ export function FileUpload({
   accept = "image/*,.pdf",
   error,
 }: FileUploadProps) {
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -77,7 +79,7 @@ export function FileUpload({
             type="button"
             onClick={() => handleFile(null)}
             className="rounded-lg p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            aria-label="Remove file"
+            aria-label={t("common.removeFile")}
           >
             <X className="h-4 w-4" />
           </button>

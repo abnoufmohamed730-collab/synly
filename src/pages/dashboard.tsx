@@ -72,7 +72,7 @@ export function DashboardPage() {
           setOffers(nextOffers);
         }
       } catch (error) {
-        if (active) toast.error(error instanceof Error ? error.message : "Could not load your dashboard.");
+        if (active) toast.error(error instanceof Error ? error.message : t("common.dashboardLoadFailed"));
       } finally {
         if (active) setLoading(false);
       }
@@ -106,7 +106,7 @@ export function DashboardPage() {
       setStatus(nextStatus);
       toast.success(checked ? t("ops.onlineNow") : t("ops.offlineNow"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update availability.");
+      toast.error(error instanceof Error ? error.message : t("common.availabilityUpdateFailed"));
     }
   };
 
@@ -120,7 +120,7 @@ export function DashboardPage() {
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
           {status === "online" ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-slate-400" />}
           <Label htmlFor="center-online" className="text-sm font-medium text-foreground">{status === "online" ? t("ops.online") : t("ops.offline")}</Label>
-          <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} disabled={!user?.verified} aria-label="Toggle online status" />
+          <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} disabled={!user?.verified} aria-label={t("common.toggleOnlineStatus")} />
         </div>
       </div>
 
@@ -130,7 +130,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard title={t("ops.activeRequests")} value={loading ? "—" : activeRequests.length} caption={t("ops.activeRequestsCaption")} icon={<Users className="h-5 w-5 text-orange-400" />} />
         <MetricCard title={t("ops.completedJobs")} value={loading ? "—" : completedRequests.length} caption={t("ops.completedJobsCaption")} icon={<CheckCircle className="h-5 w-5 text-green-400" />} />
-        <MetricCard title={t("ops.totalEarnings")} value={loading ? "—" : `EGP ${totalEarnings.toLocaleString()}`} caption={t("ops.earningsCaption")} icon={<DollarSign className="h-5 w-5 text-amber-400" />} />
+        <MetricCard title={t("ops.totalEarnings")} value={loading ? "—" : `${t("common.egp")} ${totalEarnings.toLocaleString()}`} caption={t("ops.earningsCaption")} icon={<DollarSign className="h-5 w-5 text-amber-400" />} />
         <MetricCard title={t("ops.availability")} value={status === "online" ? t("ops.online") : t("ops.offline")} caption={t("ops.availabilityCaption")} icon={<TrendingUp className="h-5 w-5 text-blue-400" />} />
       </div>
 
@@ -151,6 +151,38 @@ function MetricCard({ title, value, caption, icon }: { title: string; value: str
   return <Card className="glass-card glass-glow"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">{icon}</div></CardHeader><CardContent><div className="text-2xl font-bold capitalize text-foreground">{value}</div><p className="text-xs text-muted-foreground">{caption}</p></CardContent></Card>;
 }
 
+const urgencyKeys: Record<string, string> = {
+  emergency: "userRequests.urgencyEmergency",
+  urgent: "userRequests.urgencyUrgent",
+  normal: "userRequests.urgencyNormal",
+  scheduled: "userRequests.urgencyScheduled",
+};
+
+const statusKeys: Record<string, string> = {
+  pending: "ops.pending",
+  offered: "ops.offered",
+  accepted: "ops.accepted",
+  in_progress: "ops.inProgress",
+  completed: "ops.completed",
+  cancelled: "ops.cancelled",
+};
+
 function RequestFeedCard({ request, onOpen }: { request: ServiceRequest; onOpen: () => void }) {
-  return <Card className="glass-card glass-glow"><CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400"><Car className="h-5 w-5" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold capitalize text-foreground">{request.request_type.replace(/_/g, " ")}</p><Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-300">{request.urgency}</Badge></div><p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{request.description}</p><div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<span className="px-1">·</span><AlertTriangle className="h-3 w-3" />{request.status.replace(/_/g, " ")}</div></div><Button variant="outline" size="sm" onClick={onOpen}>View and respond</Button></CardContent></Card>;
+  const { t } = useLanguage();
+  return (
+      <Card className="glass-card glass-glow">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400"><Car className="h-5 w-5" /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold capitalize text-foreground">{t(`userRequests.${request.request_type}`)}</p>
+              <Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-300">{urgencyKeys[request.urgency] ? t(urgencyKeys[request.urgency]) : request.urgency}</Badge>
+            </div>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{request.description}</p>
+            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<span className="px-1">·</span><AlertTriangle className="h-3 w-3" />{statusKeys[request.status] ? t(statusKeys[request.status]) : request.status.replace(/_/g, " ")}</div>
+          </div>
+          <Button variant="outline" size="sm" onClick={onOpen}>{t("common.viewAndRespond")}</Button>
+        </CardContent>
+      </Card>
+    );
 }

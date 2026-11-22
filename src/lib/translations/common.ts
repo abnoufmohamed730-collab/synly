@@ -116,14 +116,28 @@ const common: TranslationModule = {
         "common.zoomOut": "Zoom Out",
     
         // Header
-    "header.searchRequests": "Search requests...",
-    "header.searchCenters": "Search centers & services...",
-    "header.dashboard": "Synly Dashboard",
-
-    // Sidebar
-    "sidebar.myRequests": "My Requests",
-    "sidebar.nearbyCenters": "Nearby Centers",
-  },
+            "header.searchRequests": "Search requests...",
+            "header.searchCenters": "Search centers & services...",
+            "header.dashboard": "Synly Dashboard",
+        
+            // Sidebar
+            "sidebar.myRequests": "My Requests",
+            "sidebar.nearbyCenters": "Nearby Centers",
+        
+            // UI chrome labels
+            "common.toggleTheme": "Toggle theme",
+            "common.light": "Light",
+            "common.dark": "Dark",
+            "common.removeFile": "Remove file",
+            "common.toggleOnlineStatus": "Toggle online status",
+            "common.switchToEnglish": "Switch to English",
+            "common.switchToArabic": "Switch to Arabic",
+            "common.switchLanguage": "Switch language",
+            "common.availabilityUpdateFailed": "Could not update availability.",
+                "common.dashboardLoadFailed": "Could not load your dashboard.",
+                "common.viewAndRespond": "View and respond",
+            "map.centerPopupStatus": "{distance} {unit} · {status}",
+          },
   ar: {
     // Common
     "common.save": "حفظ",
@@ -244,9 +258,23 @@ const common: TranslationModule = {
     "header.dashboard": "لوحة تحكم Synly",
 
     // Sidebar
-    "sidebar.myRequests": "طلباتي",
-    "sidebar.nearbyCenters": "المراكز القريبة",
-  },
+        "sidebar.myRequests": "طلباتي",
+        "sidebar.nearbyCenters": "المراكز القريبة",
+    
+        // UI chrome labels
+        "common.toggleTheme": "تبديل المظهر",
+        "common.light": "فاتح",
+        "common.dark": "داكن",
+        "common.removeFile": "إزالة الملف",
+        "common.toggleOnlineStatus": "تبديل حالة الاتصال",
+        "common.switchToEnglish": "التبديل إلى الإنجليزية",
+        "common.switchToArabic": "التبديل إلى العربية",
+        "common.switchLanguage": "تبديل اللغة",
+        "common.availabilityUpdateFailed": "تعذر تحديث حالة التوفر.",
+            "common.dashboardLoadFailed": "تعذر تحميل لوحة التحكم.",
+            "common.viewAndRespond": "عرض والرد",
+        "map.centerPopupStatus": "{distance} {unit} · {status}",
+      },
 };
 
 export default common;

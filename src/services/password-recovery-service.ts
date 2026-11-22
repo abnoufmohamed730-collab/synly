@@ -44,9 +44,12 @@ export const passwordRecoveryService = {
   },
 
   async resetPassword(challenge: OtpChallenge, newPassword: string): Promise<void> {
-    if (!challenge.resetToken) throw new Error("Verify the code before resetting your password.");
-    await invoke("reset-password", { resetToken: challenge.resetToken, newPassword });
-  },
+      if (!challenge.resetToken) throw new Error("Verify the code before resetting your password.");
+      await invoke("reset-password", { resetToken: challenge.resetToken, newPassword });
+      // The reset function revokes every session for the account, so drop the local one as well
+      // instead of leaving a stale token in the browser.
+      await supabase.auth.signOut({ scope: "local" });
+    },
 };
 
 export const OTP_LIFETIME_SECONDS_CLIENT = OTP_LIFETIME_SECONDS;

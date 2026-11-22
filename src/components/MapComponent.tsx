@@ -86,7 +86,7 @@ function PermissionCard({
         <button
           onClick={onDismiss}
           className="flex-shrink-0 p-1 text-slate-400 hover:text-white transition-colors"
-          aria-label={isPrompt ? t("map.permissionDismiss") : "Close"}
+          aria-label={isPrompt ? t("map.permissionDismiss") : t("common.close")}
         >
           <X className="h-4 w-4" />
         </button>
@@ -368,8 +368,9 @@ export function MapComponent({
   onMapDragStart,
   onUserLocation,
   centers = [],
-}: MapComponentProps) {
-  return (
+  }: MapComponentProps) {
+    const { t } = useLanguage();
+    return (
     <div className="w-full h-full relative z-0">
       <MapContainer
         center={center}
@@ -392,7 +393,13 @@ export function MapComponent({
               <div className="min-w-36">
                 <strong>{serviceCenter.name}</strong>
                 <p>{serviceCenter.service_type}</p>
-                <p>{serviceCenter.distance_km.toFixed(1)} km · {serviceCenter.open_now ? "Open now" : "Closed"}</p>
+                <p>
+                                  {t("map.centerPopupStatus", {
+                                    distance: serviceCenter.distance_km.toFixed(1),
+                                    unit: t("common.km"),
+                                    status: serviceCenter.open_now ? t("common.openNow") : t("common.closed"),
+                                  })}
+                                </p>
               </div>
             </Popup>
           </Marker>

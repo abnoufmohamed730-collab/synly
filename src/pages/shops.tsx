@@ -9,6 +9,7 @@ import { MapPin, Phone, Navigation, Wrench, Search, LocateFixed } from "lucide-r
 import { toast } from "sonner";
 import { useLanguage } from "../context/language-context";
 import { searchNearbyCenters, type NearbyCenter } from "../services/request-service";
+import { directionsUrl } from "../lib/map-config";
 
 export function ShopsPage() {
   const navigate = useNavigate();
@@ -151,7 +152,7 @@ export function ShopsPage() {
                     <Wrench className="me-2 h-4 w-4" />{t("shops.requestService")}
                   </Button>
                   {center.phone_e164 && <a href={`tel:${center.phone_e164.replace(/[^0-9+]/g, "")}`} aria-label={t("shops.callAria", { name: center.name })} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-foreground hover:bg-white/5"><Phone className="h-4 w-4" /></a>}
-                  <a href={`https://www.openstreetmap.org/directions?from=${position.lat},${position.lng}&to=${center.latitude},${center.longitude}`} target="_blank" rel="noreferrer" aria-label={t("shops.directionsAria", { name: center.name })} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-foreground hover:bg-white/5"><Navigation className="h-4 w-4" /></a>
+                  <a href={directionsUrl({ lat: position.lat, lng: position.lng }, { lat: center.latitude, lng: center.longitude })} target="_blank" rel="noreferrer" aria-label={t("shops.directionsAria", { name: center.name })} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-foreground hover:bg-white/5"><Navigation className="h-4 w-4" /></a>
                 </div>
               </CardContent>
             </Card>
