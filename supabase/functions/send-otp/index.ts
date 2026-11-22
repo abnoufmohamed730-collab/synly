@@ -52,29 +52,39 @@ serve(async (request) => {
   if (!hasRequiredSecrets(providerSecrets)) return jsonResponse({ error: `${channel === "whatsapp" ? "WhatsApp" : "SMS"} delivery is not configured.` }, request, 503);
 
   try {
-    const admin = createAdminClient();
-    const { data: reserved, error: limitError } = await admin.rpc("reserve_password_reset_otp", { p_phone_e164: phone });
-    if (limitError) throw new Error("OTP rate limit reservation failed");
-    if (!reserved) return jsonResponse({ error: "Please wait before requesting another code.", code: "cooldown", retryAfter: 60 }, request, 429, { "Retry-After": "60" });
-
-    const { data: profile, error: profileError } = await admin.from("profiles").select("user_id").eq("phone_e164", phone).maybeSingle();
-    if (profileError || !profile?.user_id) return jsonResponse(genericResponse, request, 202);
-
-    const otp = generateSixDigitOtp();
-    const otpHash = await hashValue(`${phone}:${otp}:${getRequiredSecret("OTP_HASH_SECRET")}`);
-    const { error: invalidateError } = await admin.from("password_reset_otps").update({ used_at: new Date().toISOString() }).eq("phone_e164", phone).is("used_at", null);
-    if (invalidateError) throw new Error("Could not invalidate prior OTPs");
-    const { error: insertError } = await admin.from("password_reset_otps").insert({ phone_e164: phone, otp_hash: otpHash, expires_at: new Date(Date.now() + 5 * 60_000).toISOString() });
-    if (insertError) throw new Error("OTP storage failed");
-    const delivery = (channel === "whatsapp" ? sendWhatsApp(phone, otp) : sendSms(phone, otp)).catch(() => {
-      console.error("[send-otp] OTP provider delivery failed");
-    });
+      const admin = createAdminClient();
+      // Only the rate-limit reservation runs synchronously on the response path so an
+      // attacker cannot infer whether a phone number has an account from response timing.
+      const { data: reserved, error: limitError } = await admin.rpc("reserve_password_reset_otp", { p_phone_e164: phone });
+      if (limitError) throw new Error("OTP rate limit reservation failed");
+      if (!reserved) return jsonResponse({ error: "Please wait before requesting another code.", code: "cooldown", retryAfter: 60 }, request, 429, { "Retry-After": "60" });
+    } catch {
+      console.error("[send-otp] OTP reservation failed");
+      return jsonResponse({ error: "Password recovery is temporarily unavailable.", code: "service_unavailable" }, request, 503);
+    }
+  
+    // Account lookup, token creation, and provider delivery all run off the response path.
+    const work = (async () => {
+        try {
+          const admin = createAdminClient();
+          const { data: profile, error: profileError } = await admin.from("profiles").select("user_id").eq("phone_e164", phone).maybeSingle();
+        if (profileError || !profile?.user_id) return;
+  
+        const otp = generateSixDigitOtp();
+        const otpHash = await hashValue(`${phone}:${otp}:${getRequiredSecret("OTP_HASH_SECRET")}`);
+        const { error: invalidateError } = await admin.from("password_reset_otps").update({ used_at: new Date().toISOString() }).eq("phone_e164", phone).is("used_at", null);
+        if (invalidateError) throw new Error("Could not invalidate prior OTPs");
+        const { error: insertError } = await admin.from("password_reset_otps").insert({ phone_e164: phone, otp_hash: otpHash, expires_at: new Date(Date.now() + 5 * 60_000).toISOString() });
+        if (insertError) throw new Error("OTP storage failed");
+        await (channel === "whatsapp" ? sendWhatsApp(phone, otp) : sendSms(phone, otp));
+      } catch {
+        console.error("[send-otp] OTP processing or delivery failed");
+      }
+    })();
+  
     const edgeRuntime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil(promise: Promise<void>): void } }).EdgeRuntime;
-    if (edgeRuntime) edgeRuntime.waitUntil(delivery);
-    else void delivery;
+    if (edgeRuntime) edgeRuntime.waitUntil(work);
+    else void work;
+  
     return jsonResponse(genericResponse, request, 202);
-  } catch {
-    console.error("[send-otp] OTP processing failed");
-    return jsonResponse({ error: "Password recovery is temporarily unavailable.", code: "service_unavailable" }, request, 503);
-  }
-});
+  });

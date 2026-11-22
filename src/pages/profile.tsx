@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/auth-context";
+import { useLanguage } from "../context/language-context";
 import { UserProfileForm } from "../components/profile/UserProfileForm";
 import { fetchProfileSnapshot, savePreferences as savePreferencesToDatabase } from "../services/profile-service";
 import { supabase } from "../integrations/supabase/client";
@@ -14,7 +15,7 @@ import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Save, MapPin, Clock, Users, Plus, Pencil, Trash2, Phone, Mail, ShieldCheck, Car, Home } from "lucide-react";
+import { Save, Users, Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export function ProfilePage() {
@@ -26,8 +27,17 @@ function UserProfile() {
   return <UserProfileForm />;
 }
 
+const serviceTypeOptions = [
+  { value: "Mechanical Repair", labelKey: "shops.mechanicalRepair" },
+  { value: "Auto Electric", labelKey: "shops.autoElectric" },
+  { value: "Spare Parts Shop", labelKey: "shops.spareParts" },
+  { value: "Towing/Roadside Assistance", labelKey: "shops.towingRoadside" },
+  { value: "Gas Station", labelKey: "shops.gasStation" },
+];
+
 function VendorProfile() {
   const { user, updateUser } = useAuth();
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     businessName: user?.businessName || "",
     serviceType: user?.serviceType || "",
@@ -66,14 +76,14 @@ function VendorProfile() {
       setRadius(String(snapshot.preferences?.alert_radius_km ?? 25));
       setNotifications(snapshot.preferences?.notifications_enabled ?? true);
     }).catch((error: Error) => {
-      toast.error(error.message || "Could not load your business profile.");
+      toast.error(error.message || t("screens.loadBusinessFailed"));
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [user?.id]);
-
-  const handleSave = async () => {
+      }, [user?.id, t]);
+    
+      const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
@@ -89,12 +99,12 @@ function VendorProfile() {
         const callbackUrl = new URL("/auth/callback", window.location.origin).href;
         const { error } = await supabase.auth.updateUser({ email: form.email.trim() }, { emailRedirectTo: callbackUrl });
         if (error) throw error;
-        toast.success("Confirm the email change using the message sent to your new address.");
+        toast.success(t("screens.confirmEmailChange"));
       } else {
-        toast.success("Profile updated successfully");
+        toast.success(t("screens.saveBusinessSuccess"));
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save your business profile.");
+      toast.error(error instanceof Error ? error.message : t("screens.saveBusinessFailed"));
     } finally {
       setSaving(false);
     }
@@ -105,9 +115,9 @@ function VendorProfile() {
     setSaving(true);
     try {
       await savePreferencesToDatabase(user.id, { alertRadius: Number(radius), notificationsEnabled: notifications });
-      toast.success("Preferences saved.");
+      toast.success(t("common.prefsSaved"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save preferences.");
+      toast.error(error instanceof Error ? error.message : t("screens.savePreferencesFailed"));
     } finally {
       setSaving(false);
     }
@@ -115,7 +125,7 @@ function VendorProfile() {
 
   const handleAddMechanic = () => {
     if (!newMechanic.name || !newMechanic.phone) {
-      toast.error("Name and phone are required");
+      toast.error(t("common.nameAndPhone"));
       return;
     }
     const mechanic: Mechanic = {
@@ -126,7 +136,7 @@ function VendorProfile() {
     setMechanics([...mechanics, mechanic]);
     setNewMechanic({ name: "", specialization: "", phone: "", email: "" });
     setAddOpen(false);
-    toast.success("Team member added");
+    toast.success(t("common.memberAdded"));
   };
 
   const handleEditMechanic = (mechanic: Mechanic) => {
@@ -139,12 +149,12 @@ function VendorProfile() {
     setMechanics(mechanics.map((m) => (m.id === editMechanic.id ? editMechanic : m)));
     setEditOpen(false);
     setEditMechanic(null);
-    toast.success("Team member updated");
+    toast.success(t("common.memberUpdated"));
   };
 
   const handleDeleteMechanic = (id: string) => {
     setMechanics(mechanics.filter((m) => m.id !== id));
-    toast.success("Team member removed");
+    toast.success(t("common.memberRemoved"));
   };
 
   const handleToggleMechanic = (id: string) => {
@@ -154,27 +164,27 @@ function VendorProfile() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Business Profile</h1>
-        <p className="text-muted-foreground">{loading ? "Loading your business profile…" : "Manage your service center information and team"}</p>
+        <h1 className="text-3xl font-bold text-foreground">{t("profile.businessTitle")}</h1>
+        <p className="text-muted-foreground">{loading ? t("screens.loadingBusinessProfile") : t("profile.businessSubtitle")}</p>
       </div>
 
       <Tabs defaultValue="business" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="business">Business Info</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="business">{t("profile.businessInfo")}</TabsTrigger>
+          <TabsTrigger value="team">{t("common.team")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("common.settings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Business Information</CardTitle>
-              <CardDescription>Update your service center details</CardDescription>
+              <CardTitle>{t("profile.businessInfo")}</CardTitle>
+              <CardDescription>{t("profile.businessInfoDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="businessName">Business Name</Label>
+                  <Label htmlFor="businessName">{t("profile.businessName")}</Label>
                   <Input
                     id="businessName"
                     value={form.businessName}
@@ -182,45 +192,43 @@ function VendorProfile() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="serviceType">Service Type</Label>
+                  <Label htmlFor="serviceType">{t("profile.serviceType")}</Label>
                   <Select value={form.serviceType} onValueChange={(v) => setForm({ ...form, serviceType: v })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Mechanical Repair">Mechanical Repair</SelectItem>
-                      <SelectItem value="Auto Electric">Auto Electric</SelectItem>
-                      <SelectItem value="Spare Parts Shop">Spare Parts Shop</SelectItem>
-                      <SelectItem value="Towing/Roadside Assistance">Towing/Roadside Assistance</SelectItem>
-                      <SelectItem value="Gas Station">Gas Station</SelectItem>
+                      {serviceTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{t(option.labelKey)}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">{t("common.location")}</Label>
                 <Input id="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hours">Operating Hours</Label>
+                  <Label htmlFor="hours">{t("profile.operatingHours")}</Label>
                   <Input id="hours" value={form.operatingHours} onChange={(e) => setForm({ ...form, operatingHours: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t("common.phone")}</Label>
                   <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("common.email")}</Label>
                 <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="about">About</Label>
+                <Label htmlFor="about">{t("profile.about")}</Label>
                 <Textarea id="about" value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} rows={3} />
               </div>
 
@@ -230,14 +238,14 @@ function VendorProfile() {
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 me-2" />
-                {saving ? "Saving…" : "Save Changes"}
+                {saving ? t("screens.saving") : t("common.saveChanges")}
               </Button>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Verification Status</CardTitle>
+              <CardTitle>{t("profile.verification")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
@@ -245,11 +253,11 @@ function VendorProfile() {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">{user?.verified ? "Verified Business" : "Verification pending"}</p>
-                  <p className="text-sm text-muted-foreground">{user?.verified ? "Your business has been verified by Synly" : "Your center is awaiting review by Synly"}</p>
+                  <p className="font-medium text-foreground">{user?.verified ? t("profile.verified") : t("screens.verificationPending")}</p>
+                  <p className="text-sm text-muted-foreground">{user?.verified ? t("profile.verifiedDesc") : t("screens.awaitingReview")}</p>
                 </div>
                 <Badge className={`ml-auto border ${user?.verified ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-amber-500/20 text-amber-300 border-amber-500/30"}`} variant="outline">
-                  {user?.verified ? "Verified" : "Pending review"}
+                  {user?.verified ? t("screens.verifiedBadge") : t("screens.pendingReview")}
                 </Badge>
               </div>
             </CardContent>
@@ -260,15 +268,15 @@ function VendorProfile() {
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>Manage your mechanics and staff</CardDescription>
+                <CardTitle>{t("profile.teamMembers")}</CardTitle>
+                <CardDescription>{t("profile.teamSubtitle")}</CardDescription>
               </div>
               <Button
                 onClick={() => setAddOpen(true)}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Plus className="h-4 w-4 me-2" />
-                Add Member
+                {t("common.addMember")}
               </Button>
             </CardHeader>
             <CardContent>
@@ -286,10 +294,10 @@ function VendorProfile() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch checked={mechanic.active} onCheckedChange={() => handleToggleMechanic(mechanic.id)} />
-                      <Button variant="outline" size="icon" onClick={() => handleEditMechanic(mechanic)}>
+                      <Button variant="outline" size="icon" onClick={() => handleEditMechanic(mechanic)} aria-label={t("common.edit")}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleDeleteMechanic(mechanic.id)}>
+                      <Button variant="outline" size="icon" onClick={() => handleDeleteMechanic(mechanic.id)} aria-label={t("common.delete")}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -303,12 +311,12 @@ function VendorProfile() {
         <TabsContent value="settings" className="space-y-4">
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Alert Radius</CardTitle>
-              <CardDescription>Set the radius for incoming request alerts</CardDescription>
+              <CardTitle>{t("common.alertRadius")}</CardTitle>
+              <CardDescription>{t("screens.alertRadiusDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Distance Radius</Label>
+                <Label>{t("common.distanceRadius")}</Label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
@@ -318,9 +326,9 @@ function VendorProfile() {
                     onChange={(e) => setRadius(e.target.value)}
                     className="flex-1 accent-orange-500"
                   />
-                  <span className="text-sm font-medium text-foreground w-16">{radius} km</span>
+                  <span className="text-sm font-medium text-foreground w-16">{radius} {t("common.km")}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">You'll receive alerts from customers within {radius} km.</p>
+                <p className="text-xs text-muted-foreground">{t("common.customerAlerts", { radius })}</p>
               </div>
               <Button
                 disabled={loading || saving}
@@ -328,28 +336,28 @@ function VendorProfile() {
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 me-2" />
-                {saving ? "Saving…" : "Save Radius"}
+                {saving ? t("screens.saving") : t("common.saveRadius")}
               </Button>
             </CardContent>
           </Card>
 
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Manage your notification preferences</CardDescription>
+              <CardTitle>{t("common.notifications")}</CardTitle>
+              <CardDescription>{t("profile.notificationsDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Push Notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive alerts for new requests</p>
+                  <p className="text-sm font-medium text-foreground">{t("common.pushNotifications")}</p>
+                  <p className="text-xs text-muted-foreground">{t("screens.pushDesc")}</p>
                 </div>
                 <Switch checked={notifications} onCheckedChange={setNotifications} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Email Notifications</p>
-                  <p className="text-xs text-muted-foreground">Get updates via email</p>
+                  <p className="text-sm font-medium text-foreground">{t("common.emailNotifications")}</p>
+                  <p className="text-xs text-muted-foreground">{t("profile.getUpdates")}</p>
                 </div>
                 <Switch checked={notifications} onCheckedChange={setNotifications} />
               </div>
@@ -359,7 +367,7 @@ function VendorProfile() {
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
                 <Save className="h-4 w-4 me-2" />
-                {saving ? "Saving…" : "Save Preferences"}
+                {saving ? t("screens.saving") : t("common.savePreferences")}
               </Button>
             </CardContent>
           </Card>
@@ -370,30 +378,30 @@ function VendorProfile() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Team Member</DialogTitle>
-            <DialogDescription>Add a new mechanic or staff member to your team.</DialogDescription>
+            <DialogTitle>{t("common.addMemberTitle")}</DialogTitle>
+            <DialogDescription>{t("common.addMemberDesc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input value={newMechanic.name} onChange={(e) => setNewMechanic({ ...newMechanic, name: e.target.value })} placeholder="e.g. Ahmed Hassan" />
+              <Label>{t("common.fullName")}</Label>
+              <Input value={newMechanic.name} onChange={(e) => setNewMechanic({ ...newMechanic, name: e.target.value })} placeholder="Ahmed Hassan" />
             </div>
             <div className="space-y-2">
-              <Label>Specialization</Label>
-              <Input value={newMechanic.specialization} onChange={(e) => setNewMechanic({ ...newMechanic, specialization: e.target.value })} placeholder="e.g. Engine Repair" />
+              <Label>{t("common.specialization")}</Label>
+              <Input value={newMechanic.specialization} onChange={(e) => setNewMechanic({ ...newMechanic, specialization: e.target.value })} placeholder="Engine Repair" />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
+              <Label>{t("common.phone")}</Label>
               <Input value={newMechanic.phone} onChange={(e) => setNewMechanic({ ...newMechanic, phone: e.target.value })} placeholder="+20 100 123 4567" />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{t("common.email")}</Label>
               <Input value={newMechanic.email} onChange={(e) => setNewMechanic({ ...newMechanic, email: e.target.value })} placeholder="email@example.com" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">Add Member</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleAddMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">{t("common.addMember")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -402,32 +410,32 @@ function VendorProfile() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Team Member</DialogTitle>
-            <DialogDescription>Update team member information.</DialogDescription>
+            <DialogTitle>{t("common.editMemberTitle")}</DialogTitle>
+            <DialogDescription>{t("common.editMemberDesc")}</DialogDescription>
           </DialogHeader>
           {editMechanic && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Full Name</Label>
+                <Label>{t("common.fullName")}</Label>
                 <Input value={editMechanic.name} onChange={(e) => setEditMechanic({ ...editMechanic, name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Specialization</Label>
+                <Label>{t("common.specialization")}</Label>
                 <Input value={editMechanic.specialization} onChange={(e) => setEditMechanic({ ...editMechanic, specialization: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label>{t("common.phone")}</Label>
                 <Input value={editMechanic.phone} onChange={(e) => setEditMechanic({ ...editMechanic, phone: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t("common.email")}</Label>
                 <Input value={editMechanic.email} onChange={(e) => setEditMechanic({ ...editMechanic, email: e.target.value })} />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">Save Changes</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleUpdateMechanic} className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white">{t("common.saveChanges")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

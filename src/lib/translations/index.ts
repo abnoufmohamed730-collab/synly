@@ -7,8 +7,9 @@ import user from "./user";
 import vendor from "./vendor";
 import profile from "./profile";
 import operations from "./operations";
+import screens from "./screens";
 
-const modules: TranslationModule[] = [common, welcome, auth, map, user, vendor, profile, operations];
+const modules: TranslationModule[] = [common, welcome, auth, map, user, vendor, profile, operations, screens];
 
 function mergeModules(modules: TranslationModule[]): Record<Lang, TranslationDict> {
   return modules.reduce(

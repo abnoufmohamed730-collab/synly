@@ -10,25 +10,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { getCustomerRequests, searchNearbyCenters, subscribeToCustomerRequestChanges, type NearbyCenter, type ServiceRequest } from "../services/request-service";
-import {
-  Menu,
-  Car,
-  Store,
-  Siren,
-  Package,
-  Stethoscope,
-  Search,
-  Navigation,
-  Plus,
-  ArrowRight,
-  Wrench,
-  CircleDot,
-  Battery,
-  Fuel,
-  Lock,
-  Clock,
-  ChevronUp,
-} from "lucide-react";
+import { Menu, Car, Siren, Package, Stethoscope, Search, Navigation, Plus, ArrowRight, Wrench, CircleDot, Battery, Fuel, Lock, ChevronUp } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 
@@ -41,20 +23,14 @@ const quickActions = [
   { key: "map.mechanical", icon: Wrench, color: "bg-rose-500/10 text-rose-400" },
 ];
 
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useLanguage();
-  const map: Record<string, string> = {
-    pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    accepted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    completed: "bg-green-500/20 text-green-400 border-green-500/30",
-    cancelled: "bg-gray-500/20 text-gray-500/30",
-  };
-  return (
-    <Badge className={map[status] || map.pending} variant="outline">
-      {t(`common.${status}`)}
-    </Badge>
-  );
-}
+const statusTranslationKeys: Record<string, string> = {
+  pending: "ops.pending",
+  offered: "ops.offered",
+  accepted: "ops.accepted",
+  in_progress: "ops.inProgress",
+  completed: "ops.completed",
+  cancelled: "ops.cancelled",
+};
 
 export function UserMapDashboardPage() {
   const { t } = useLanguage();
@@ -85,7 +61,7 @@ export function UserMapDashboardPage() {
       }).then((results) => {
         if (active) setCenters(results);
       }).catch(() => {
-        if (active) toast.error("Nearby service centers could not be loaded.");
+        if (active) toast.error(t("shops.loadError"));
       }).finally(() => {
         if (active) setNearbyLoading(false);
       });
@@ -94,7 +70,7 @@ export function UserMapDashboardPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [position, serviceType, openNow, search]);
+  }, [position, serviceType, openNow, search, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -104,12 +80,12 @@ export function UserMapDashboardPage() {
         const requests = await getCustomerRequests(user.id);
         if (active) setActiveRequest(requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null);
       } catch {
-        if (active) toast.error("Your active request could not be loaded.");
+        if (active) toast.error(t("screens.activeRequestLoadFailed"));
       }
     };
     void refreshActiveRequest();
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, t]);
 
   useEffect(() => {
     if (!user) return;
@@ -132,12 +108,12 @@ export function UserMapDashboardPage() {
   const handleSearch = () => {
     if (position) return;
     if (!navigator.geolocation) {
-      toast.error("Location access is not available in this browser.");
+      toast.error(t("shops.locationUnavailable"));
       return;
     }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => setPosition({ lat: coords.latitude, lng: coords.longitude }),
-      () => toast.error("Allow location access to search nearby service centers."),
+      () => toast.error(t("shops.locationPermission")),
     );
   };
 
@@ -161,7 +137,7 @@ export function UserMapDashboardPage() {
         <button
           onClick={() => setSidebarOpen(true)}
           className="glass-btn h-10 w-10 shadow-lg"
-          aria-label="Open menu"
+          aria-label={t("screens.openMenu")}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -188,44 +164,44 @@ export function UserMapDashboardPage() {
         <div className="absolute top-20 inset-x-4 z-40 mx-auto max-w-md glass-sheet rounded-2xl border border-blue-400/20 p-4 shadow-2xl">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-300">Active request</p>
-              <p className="mt-1 truncate font-semibold text-white">{activeRequest.request_type.replace(/_/g, " ")} · {activeRequest.status.replace(/_/g, " ")}</p>
-              <p className="text-xs text-slate-300">{activeRequest.offers?.length ?? 0} offers received</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-300">{t("screens.activeRequest")}</p>
+              <p className="mt-1 truncate font-semibold text-white">{t(`userRequests.${activeRequest.request_type}`)} · {statusTranslationKeys[activeRequest.status] ? t(statusTranslationKeys[activeRequest.status]) : activeRequest.status.replace(/_/g, " ")}</p>
+              <p className="text-xs text-slate-300">{t("screens.offersReceived", { count: activeRequest.offers?.length ?? 0 })}</p>
             </div>
-            <Button size="sm" onClick={() => navigate("/user/requests")} className="shrink-0 bg-blue-600 text-white hover:bg-blue-500">Track</Button>
+            <Button size="sm" onClick={() => navigate("/user/requests")} className="shrink-0 bg-blue-600 text-white hover:bg-blue-500">{t("common.track")}</Button>
           </div>
         </div>
       )}
 
       {/* Bottom sheet */}
-            <div
-              className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-400 ease-out ${
-                sheetExpanded
-                  ? "translate-y-0 opacity-100 pointer-events-auto"
-                  : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
-              }`}
-            >
-              <div className="mx-auto max-w-4xl">
-                {/* Drag handle / expand pill */}
-                <button
-                  onClick={() => setSheetExpanded((v) => !v)}
-                  className="mx-auto mb-3 flex h-6 w-16 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 interactive-scale"
-                  aria-label={sheetExpanded ? "Collapse panel" : "Expand panel"}
-                >
-                  <ChevronUp
-                    className={cn(
-                      "h-4 w-4 text-white/70 transition-transform duration-400 ease-out",
-                      sheetExpanded ? "rotate-0" : "rotate-180"
-                    )}
-                  />
-                </button>
+      <div
+        className={`absolute inset-x-0 bottom-0 z-30 p-3 md:p-5 transition-all duration-400 ease-out ${
+          sheetExpanded
+            ? "translate-y-0 opacity-100 pointer-events-auto"
+            : "translate-y-[calc(100%-72px)] opacity-100 pointer-events-auto"
+        }`}
+      >
+        <div className="mx-auto max-w-4xl">
+          {/* Drag handle / expand pill */}
+          <button
+            onClick={() => setSheetExpanded((v) => !v)}
+            className="mx-auto mb-3 flex h-6 w-16 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 interactive-scale"
+            aria-label={sheetExpanded ? t("screens.collapsePanel") : t("screens.expandPanel")}
+          >
+            <ChevronUp
+              className={cn(
+                "h-4 w-4 text-white/70 transition-transform duration-400 ease-out",
+                sheetExpanded ? "rotate-0" : "rotate-180"
+              )}
+            />
+          </button>
 
           <div className="glass-sheet rounded-3xl p-4 md:p-5">
             {/* Greeting */}
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-bold text-white md:text-2xl">
-                  {t("map.greeting")}
+                  {t("screens.welcomeBack", { name: user?.businessName?.split(" ")[0] || "there" })}
                 </h1>
                 <p className="text-sm text-slate-400">{t("map.subtitle")}</p>
               </div>
@@ -241,10 +217,10 @@ export function UserMapDashboardPage() {
             {/* Bottom sheet grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Large card: Roadside Assistance */}
-                            <button
-                              onClick={() => navigate("/user/requests")}
-                              className="group relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent p-4 text-left transition-all hover:border-orange-500/50 hover:from-orange-500/20 md:col-span-2 interactive-scale"
-                            >
+              <button
+                onClick={() => navigate("/user/requests")}
+                className="group relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-transparent p-4 text-left transition-all hover:border-orange-500/50 hover:from-orange-500/20 md:col-span-2 interactive-scale"
+              >
                 <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-500/10 blur-2xl transition-all group-hover:bg-orange-500/20" />
                 <div className="relative flex items-center gap-4">
                   <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-105">
@@ -278,10 +254,10 @@ export function UserMapDashboardPage() {
               </button>
 
               {/* Diagnostics & Inspection */}
-                            <button
-                              onClick={() => navigate("/user/shops")}
-                              className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10 interactive-scale"
-                            >
+              <button
+                onClick={() => navigate("/user/shops")}
+                className="group rounded-2xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-xl transition-all hover:border-blue-500/40 hover:bg-white/10 interactive-scale"
+              >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-transform group-hover:scale-105">
                     <Stethoscope className="h-5 w-5" />
@@ -295,13 +271,13 @@ export function UserMapDashboardPage() {
             </div>
 
             {/* Quick actions row */}
-                        <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-2">
-                          {quickActions.map((action) => (
-                            <button
-                              key={action.key}
-                              onClick={() => navigate("/user/requests")}
-                              className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-blue-500/30 hover:bg-white/10 interactive-scale"
-                            >
+            <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {quickActions.map((action) => (
+                <button
+                  key={action.key}
+                  onClick={() => navigate("/user/requests")}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-blue-500/30 hover:bg-white/10 interactive-scale"
+                >
                   <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", action.color)}>
                     <action.icon className="h-4 w-4" />
                   </div>
@@ -330,27 +306,27 @@ export function UserMapDashboardPage() {
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <Select value={serviceType || "all"} onValueChange={(value) => setServiceType(value === "all" ? "" : value)}>
-                <SelectTrigger className="glass-input h-10 text-white" aria-label="Filter service type"><SelectValue placeholder="All services" /></SelectTrigger>
+                <SelectTrigger className="glass-input h-10 text-white" aria-label={t("shops.filterServiceAria")}><SelectValue placeholder={t("shops.allServices")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All services</SelectItem>
-                  <SelectItem value="Mechanical Repair">Mechanical repair</SelectItem>
-                  <SelectItem value="Auto Electric">Auto electric</SelectItem>
-                  <SelectItem value="Spare Parts Shop">Spare parts</SelectItem>
-                  <SelectItem value="Towing/Roadside Assistance">Towing / roadside</SelectItem>
-                  <SelectItem value="Gas Station">Gas station</SelectItem>
+                  <SelectItem value="all">{t("shops.allServices")}</SelectItem>
+                  <SelectItem value="Mechanical Repair">{t("shops.mechanicalRepair")}</SelectItem>
+                  <SelectItem value="Auto Electric">{t("shops.autoElectric")}</SelectItem>
+                  <SelectItem value="Spare Parts Shop">{t("shops.spareParts")}</SelectItem>
+                  <SelectItem value="Towing/Roadside Assistance">{t("shops.towingRoadside")}</SelectItem>
+                  <SelectItem value="Gas Station">{t("shops.gasStation")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={openNow} onValueChange={setOpenNow}>
-                <SelectTrigger className="glass-input h-10 text-white" aria-label="Filter availability"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="glass-input h-10 text-white" aria-label={t("shops.filterAvailabilityAria")}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Any availability</SelectItem>
-                  <SelectItem value="open">Open now</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="all">{t("shops.anyAvailability")}</SelectItem>
+                  <SelectItem value="open">{t("shops.openNow")}</SelectItem>
+                  <SelectItem value="closed">{t("shops.closed")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <p className="mt-2 text-xs text-slate-400" aria-live="polite">
-              {!position ? "Allow location to discover nearby approved centers." : nearbyLoading ? "Searching nearby centers…" : `${centers.length} approved centers nearby`}
+              {!position ? t("screens.allowLocationDiscover") : nearbyLoading ? t("screens.searchingNearby") : t("screens.centersNearby", { count: centers.length })}
             </p>
           </div>
         </div>

@@ -10,7 +10,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Send, X, MapPin, Clock, Car, LoaderCircle, Play, CheckCircle, Navigation } from "lucide-react";
 import { toast } from "sonner";
-import { declineServiceRequest, getOwnCenter, getVendorOffers, getVendorRequests, submitRequestOffer, subscribeToCenterRequestChanges, transitionServiceRequest, type RequestOffer, type RequestStatus, type ServiceRequest } from "../services/request-service";
+import { declineServiceRequest, getOwnCenter, getVendorOffers, getVendorRequests, submitRequestOffer, subscribeToCenterRequestChanges, transitionServiceRequest, type RequestOffer, type ServiceRequest } from "../services/request-service";
 import { useLanguage } from "../context/language-context";
 
 const statusTabs: { value: string; labelKey: string }[] = [
@@ -22,6 +22,22 @@ const statusTabs: { value: string; labelKey: string }[] = [
   { value: "completed", labelKey: "requests.completed" },
   { value: "cancelled", labelKey: "requests.cancelled" },
 ];
+
+const statusTranslationKeys: Record<string, string> = {
+  pending: "ops.pending",
+  offered: "ops.offered",
+  accepted: "ops.accepted",
+  in_progress: "ops.inProgress",
+  completed: "ops.completed",
+  cancelled: "ops.cancelled",
+};
+
+const urgencyTranslationKeys: Record<string, string> = {
+  emergency: "userRequests.urgencyEmergency",
+  urgent: "userRequests.urgencyUrgent",
+  normal: "userRequests.urgencyNormal",
+  scheduled: "userRequests.urgencyScheduled",
+};
 
 const statusStyle: Record<string, string> = {
   pending: "border-amber-400/30 bg-amber-400/10 text-amber-300",
@@ -79,7 +95,7 @@ export function RequestsPage() {
         setRequests(nextRequests);
         setOffers(nextOffers);
       } catch (error) {
-        if (active) toast.error(error instanceof Error ? error.message : t("requests.requestFailed"));
+        if (active) toast.error(error instanceof Error ? error.message : t("ops.requestFailed"));
       } finally {
         if (active) setLoading(false);
       }
@@ -106,7 +122,7 @@ export function RequestsPage() {
     if (!selectedRequest) return;
     const price = Number(offerPrice);
     if (!Number.isFinite(price) || price <= 0) {
-      toast.error("Enter a valid offer price.");
+      toast.error(t("screens.enterOfferPrice"));
       return;
     }
     setSaving(true);
@@ -114,9 +130,9 @@ export function RequestsPage() {
       await submitRequestOffer(selectedRequest.id, price, offerMessage, arrival ? Number(arrival) : null);
       await refresh(centerId ?? undefined);
       setSelectedRequestId(null);
-      toast.success("Your offer was sent to the customer.");
+      toast.success(t("screens.offerSent"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not send the offer.");
+      toast.error(error instanceof Error ? error.message : t("screens.offerSendFailed"));
     } finally {
       setSaving(false);
     }
@@ -127,9 +143,9 @@ export function RequestsPage() {
       await declineServiceRequest(requestId);
       await refresh(centerId ?? undefined);
       setSelectedRequestId(null);
-      toast.success("Request declined for your center.");
+      toast.success(t("screens.requestDeclined"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not decline this request.");
+      toast.error(error instanceof Error ? error.message : t("screens.declineFailed"));
     }
   };
 
@@ -137,9 +153,9 @@ export function RequestsPage() {
     try {
       await transitionServiceRequest(requestId, status);
       await refresh(centerId ?? undefined);
-      toast.success(status === "completed" ? "Job marked complete." : "Job started.");
+      toast.success(status === "completed" ? t("screens.jobCompleted") : t("screens.jobStarted"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update request status.");
+      toast.error(error instanceof Error ? error.message : t("screens.statusUpdateFailed"));
     }
   };
 
@@ -160,10 +176,10 @@ export function RequestsPage() {
           ) : <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{filteredRequests.map((request) => {
             const ownOffer = ownOfferByRequest.get(request.id);
             return <Card key={request.id} className="glass-card"><CardContent className="space-y-4 p-5">
-              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs text-muted-foreground">Request {request.id.slice(0, 8)}</p><h2 className="mt-1 text-lg font-semibold capitalize text-foreground">{request.request_type.replace(/_/g, " ")}</h2></div><Badge variant="outline" className={statusStyle[request.status]}>{request.status.replace(/_/g, " ")}</Badge></div>
+              <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs text-muted-foreground">{t("screens.requestRef", { id: request.id.slice(0, 8) })}</p><h2 className="mt-1 text-lg font-semibold capitalize text-foreground">{t(`userRequests.${request.request_type}`)}</h2></div><Badge variant="outline" className={statusStyle[request.status]}>{statusTranslationKeys[request.status] ? t(statusTranslationKeys[request.status]) : request.status.replace(/_/g, " ")}</Badge></div>
               <p className="line-clamp-3 text-sm text-muted-foreground">{request.description}</p>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge variant="secondary" className="capitalize">{request.urgency}</Badge><span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleString()}</span><span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{request.address || `${request.latitude.toFixed(3)}, ${request.longitude.toFixed(3)}`}</span></div>
-              {ownOffer && <div className="rounded-xl border border-blue-400/15 bg-blue-400/5 p-3 text-sm"><span className="font-semibold text-foreground">{t("requests.yourOffer", { price: Number(ownOffer.price).toFixed(2) })}</span><span className="ms-2 capitalize text-blue-300">{ownOffer.status}</span></div>}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Badge variant="secondary" className="capitalize">{urgencyTranslationKeys[request.urgency] ? t(urgencyTranslationKeys[request.urgency]) : request.urgency}</Badge><span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(request.created_at).toLocaleString()}</span><span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{request.address || `${request.latitude.toFixed(3)}, ${request.longitude.toFixed(3)}`}</span></div>
+              {ownOffer && <div className="rounded-xl border border-blue-400/15 bg-blue-400/5 p-3 text-sm"><span className="font-semibold text-foreground">{t("requests.yourOffer", { price: Number(ownOffer.price).toFixed(2) })}</span><span className="ms-2 capitalize text-blue-300">{statusTranslationKeys[ownOffer.status] ? t(statusTranslationKeys[ownOffer.status]) : ownOffer.status}</span></div>}
               <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
                 <Button variant="outline" size="sm" onClick={() => { setSelectedRequestId(request.id); setOfferPrice(""); setOfferMessage(""); setArrival(""); }}>{t("requests.viewDetails")}</Button>
                 {(["pending", "offered"].includes(request.status) && !ownOffer) && <Button size="sm" onClick={() => { setSelectedRequestId(request.id); setOfferPrice(""); setOfferMessage(""); setArrival(""); }} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Send className="me-1.5 h-4 w-4" />{t("requests.sendOffer")}</Button>}
@@ -178,9 +194,9 @@ export function RequestsPage() {
 
       <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)}>
         <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
-          {selectedRequest && <><DialogHeader><DialogTitle className="capitalize">{selectedRequest.request_type.replace(/_/g, " ")} request</DialogTitle><DialogDescription>Request {selectedRequest.id.slice(0, 8)} · {new Date(selectedRequest.created_at).toLocaleString()}</DialogDescription></DialogHeader>
-            <div className="space-y-4"><div className="flex flex-wrap gap-2"><Badge variant="outline" className={statusStyle[selectedRequest.status]}>{selectedRequest.status.replace(/_/g, " ")}</Badge><Badge variant="secondary" className="capitalize">{selectedRequest.urgency}</Badge>{selectedRequest.scheduled_at && <Badge variant="secondary">Scheduled {new Date(selectedRequest.scheduled_at).toLocaleString()}</Badge>}</div><p className="whitespace-pre-wrap text-sm text-foreground">{selectedRequest.description}</p><div className="rounded-xl border border-white/10 bg-white/[0.03] p-3"><p className="flex items-center gap-2 text-sm font-medium text-foreground"><MapPin className="h-4 w-4 text-blue-400" />{selectedRequest.address || "Request location"}</p><p className="mt-1 text-xs text-muted-foreground">{selectedRequest.latitude}, {selectedRequest.longitude}</p><a className="mt-2 inline-flex items-center text-xs text-blue-300 hover:text-blue-200" href={`https://www.openstreetmap.org/?mlat=${selectedRequest.latitude}&mlon=${selectedRequest.longitude}#map=16/${selectedRequest.latitude}/${selectedRequest.longitude}`} target="_blank" rel="noreferrer"><Navigation className="me-1.5 h-3.5 w-3.5" />Open map</a></div>
-              {selectedRequest.status === "pending" || selectedRequest.status === "offered" ? ownOfferByRequest.has(selectedRequest.id) ? <div className="rounded-xl border border-blue-400/20 bg-blue-400/5 p-4 text-sm text-blue-200">You have already sent an offer for this request.</div> : <form onSubmit={handleSendOffer} className="space-y-3 border-t border-white/10 pt-4"><h3 className="font-semibold text-foreground">Send a price offer</h3><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="offerPrice">Offer price (EGP)</Label><Input id="offerPrice" type="number" min="0.01" step="0.01" required value={offerPrice} onChange={(event) => setOfferPrice(event.target.value)} placeholder="Enter amount" /></div><div className="space-y-2"><Label htmlFor="offerArrival">Estimated arrival (minutes)</Label><Input id="offerArrival" type="number" min="0" max="1440" value={arrival} onChange={(event) => setArrival(event.target.value)} placeholder="Optional" /></div></div><div className="space-y-2"><Label htmlFor="offerMessage">Message (optional)</Label><Textarea id="offerMessage" value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} placeholder="What is included in your offer?" /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedRequestId(null)}>Close</Button><Button type="submit" disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving && <LoaderCircle className="me-2 h-4 w-4 animate-spin" />}Send offer</Button></DialogFooter></form> : null}
+          {selectedRequest && <><DialogHeader><DialogTitle className="capitalize">{t("screens.requestDetailsTitle", { type: t(`userRequests.${selectedRequest.request_type}`) })}</DialogTitle><DialogDescription>{selectedRequest.id.slice(0, 8)} · {new Date(selectedRequest.created_at).toLocaleString()}</DialogDescription></DialogHeader>
+            <div className="space-y-4"><div className="flex flex-wrap gap-2"><Badge variant="outline" className={statusStyle[selectedRequest.status]}>{statusTranslationKeys[selectedRequest.status] ? t(statusTranslationKeys[selectedRequest.status]) : selectedRequest.status.replace(/_/g, " ")}</Badge><Badge variant="secondary" className="capitalize">{urgencyTranslationKeys[selectedRequest.urgency] ? t(urgencyTranslationKeys[selectedRequest.urgency]) : selectedRequest.urgency}</Badge>{selectedRequest.scheduled_at && <Badge variant="secondary">{t("requests.scheduled", { date: new Date(selectedRequest.scheduled_at).toLocaleString() })}</Badge>}</div><p className="whitespace-pre-wrap text-sm text-foreground">{selectedRequest.description}</p><div className="rounded-xl border border-white/10 bg-white/[0.03] p-3"><p className="flex items-center gap-2 text-sm font-medium text-foreground"><MapPin className="h-4 w-4 text-blue-400" />{selectedRequest.address || t("requests.requestLocation")}</p><p className="mt-1 text-xs text-muted-foreground">{selectedRequest.latitude}, {selectedRequest.longitude}</p><a className="mt-2 inline-flex items-center text-xs text-blue-300 hover:text-blue-200" href={`https://www.openstreetmap.org/?mlat=${selectedRequest.latitude}&mlon=${selectedRequest.longitude}#map=16/${selectedRequest.latitude}/${selectedRequest.longitude}`} target="_blank" rel="noreferrer"><Navigation className="me-1.5 h-3.5 w-3.5" />{t("requests.openMap")}</a></div>
+              {selectedRequest.status === "pending" || selectedRequest.status === "offered" ? ownOfferByRequest.has(selectedRequest.id) ? <div className="rounded-xl border border-blue-400/20 bg-blue-400/5 p-4 text-sm text-blue-200">{t("requests.alreadySentOffer")}</div> : <form onSubmit={handleSendOffer} className="space-y-3 border-t border-white/10 pt-4"><h3 className="font-semibold text-foreground">{t("requests.sendPriceOffer")}</h3><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="offerPrice">{t("requests.offerPrice")}</Label><Input id="offerPrice" type="number" min="0.01" step="0.01" required value={offerPrice} onChange={(event) => setOfferPrice(event.target.value)} placeholder={t("screens.offerAmountPlaceholder")} /></div><div className="space-y-2"><Label htmlFor="offerArrival">{t("requests.estimatedArrival")}</Label><Input id="offerArrival" type="number" min="0" max="1440" value={arrival} onChange={(event) => setArrival(event.target.value)} placeholder={t("screens.optional")} /></div></div><div className="space-y-2"><Label htmlFor="offerMessage">{t("requests.messageOptional")}</Label><Textarea id="offerMessage" value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} placeholder={t("screens.offerMessagePlaceholder")} /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedRequestId(null)}>{t("requests.close")}</Button><Button type="submit" disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving && <LoaderCircle className="me-2 h-4 w-4 animate-spin" />}{t("requests.sendOffer")}</Button></DialogFooter></form> : null}
             </div>
           </>}</DialogContent>
       </Dialog>
