@@ -72,7 +72,7 @@ export function VendorOrdersPage() {
     try {
       await setOrderStatus(order.id, status);
       toast.success(t(successKey));
-      await refresh(centerId);
+      await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("orders.actionFailed"));
     } finally {

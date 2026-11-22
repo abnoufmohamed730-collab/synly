@@ -34,22 +34,28 @@ async function unwrap<T>(result: PromiseLike<{ data: T | null; error: { message:
 
 const orderSelect = "id,customer_id,service_center_id,status,subtotal,total,payment_method,created_at,updated_at,service_centers(name,service_type,phone_e164),order_items(id,catalog_item_id,name_snapshot,item_type,unit_price,quantity,line_total)";
 
-function normalize(rows: Order[]): Order[] {
-  return rows.map((row) => ({
+type OrderQueryRow = Omit<Order, "service_centers" | "items"> & {
+  service_centers: { name: string; service_type: string; phone_e164: string | null }[];
+  order_items: OrderItem[];
+};
+
+function normalize(rows: OrderQueryRow[]): Order[] {
+  return rows.map(({ order_items, service_centers, ...row }) => ({
     ...row,
-    items: (row.items ?? []).slice().sort((left, right) => left.name_snapshot.localeCompare(right.name_snapshot)),
+    service_centers: service_centers[0] ?? null,
+    items: order_items.slice().sort((left, right) => left.name_snapshot.localeCompare(right.name_snapshot)),
   }));
 }
 
 export async function getCustomerOrders(customerId: string): Promise<Order[]> {
-  const rows = await unwrap<Order[]>(
+  const rows = await unwrap<OrderQueryRow[]>(
     supabase.from("orders").select(orderSelect).eq("customer_id", customerId).order("created_at", { ascending: false }),
   );
   return normalize(rows);
 }
 
 export async function getVendorOrders(centerId: string): Promise<Order[]> {
-  const rows = await unwrap<Order[]>(
+  const rows = await unwrap<OrderQueryRow[]>(
     supabase.from("orders").select(orderSelect).eq("service_center_id", centerId).order("created_at", { ascending: false }),
   );
   return normalize(rows);
