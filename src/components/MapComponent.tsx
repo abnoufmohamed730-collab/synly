@@ -228,10 +228,10 @@ function LocationMarker({
         onLocateRef.current?.();
       },
       (error) => {
-              if (error.code === 1) setPermissionState("denied");
-              setStatus("error");
-              toast.error(t(error.code === 1 ? "map.gpsDenied" : error.code === 3 ? "map.locationTimeout" : "map.locationUnavailable"));
-            },
+        if (error.code === 1) setPermissionState("denied");
+        setStatus("error");
+        toast.error(t(error.code === 1 ? "map.gpsDenied" : error.code === 3 ? "map.locationTimeout" : "map.locationUnavailable"));
+      },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
   };

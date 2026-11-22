@@ -174,32 +174,32 @@ export function UserRequestsPage() {
   };
 
   const handleAcceptOffer = async (offerId: string) => {
-      if (!window.confirm(t("ops.confirmAcceptOffer"))) return;
-      setActionRequestId(offerId);
-      try {
-        await acceptRequestOffer(offerId);
-        await refreshRequests();
-        toast.success(t("ops.offerAccepted"));
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t("screens.acceptFailed"));
-      } finally {
-        setActionRequestId(null);
-      }
-    };
-  
-    const handleCancel = async (requestId: string) => {
-      if (!window.confirm(t("ops.confirmCancelRequest"))) return;
-      setActionRequestId(requestId);
-      try {
-        await cancelServiceRequest(requestId);
-        await refreshRequests();
-        toast.success(t("ops.requestCancelled"));
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t("screens.cancelFailed"));
-      } finally {
-        setActionRequestId(null);
-      }
-    };
+    if (!window.confirm(t("ops.confirmAcceptOffer"))) return;
+    setActionRequestId(offerId);
+    try {
+      await acceptRequestOffer(offerId);
+      await refreshRequests();
+      toast.success(t("ops.offerAccepted"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("screens.acceptFailed"));
+    } finally {
+      setActionRequestId(null);
+    }
+  };
+
+  const handleCancel = async (requestId: string) => {
+    if (!window.confirm(t("ops.confirmCancelRequest"))) return;
+    setActionRequestId(requestId);
+    try {
+      await cancelServiceRequest(requestId);
+      await refreshRequests();
+      toast.success(t("ops.requestCancelled"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("screens.cancelFailed"));
+    } finally {
+      setActionRequestId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
