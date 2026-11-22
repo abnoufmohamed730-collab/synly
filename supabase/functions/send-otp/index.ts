@@ -55,7 +55,7 @@ serve(async (request) => {
     const admin = createAdminClient();
     const { data: reserved, error: limitError } = await admin.rpc("reserve_password_reset_otp", { p_phone_e164: phone });
     if (limitError) throw new Error("OTP rate limit reservation failed");
-    if (!reserved) return jsonResponse({ error: "Please wait before requesting another code." }, request, 429);
+    if (!reserved) return jsonResponse({ error: "Please wait before requesting another code.", code: "cooldown", retryAfter: 60 }, request, 429, { "Retry-After": "60" });
 
     const { data: profile, error: profileError } = await admin.from("profiles").select("user_id").eq("phone_e164", phone).maybeSingle();
     if (profileError || !profile?.user_id) return jsonResponse(genericResponse, request, 202);
@@ -66,11 +66,15 @@ serve(async (request) => {
     if (invalidateError) throw new Error("Could not invalidate prior OTPs");
     const { error: insertError } = await admin.from("password_reset_otps").insert({ phone_e164: phone, otp_hash: otpHash, expires_at: new Date(Date.now() + 5 * 60_000).toISOString() });
     if (insertError) throw new Error("OTP storage failed");
-    if (channel === "whatsapp") await sendWhatsApp(phone, otp);
-    else await sendSms(phone, otp);
+    const delivery = (channel === "whatsapp" ? sendWhatsApp(phone, otp) : sendSms(phone, otp)).catch(() => {
+      console.error("[send-otp] OTP provider delivery failed");
+    });
+    const edgeRuntime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil(promise: Promise<void>): void } }).EdgeRuntime;
+    if (edgeRuntime) edgeRuntime.waitUntil(delivery);
+    else void delivery;
     return jsonResponse(genericResponse, request, 202);
   } catch {
-    console.error("[send-otp] OTP processing or delivery failed");
-    return jsonResponse(genericResponse, request, 202);
+    console.error("[send-otp] OTP processing failed");
+    return jsonResponse({ error: "Password recovery is temporarily unavailable.", code: "service_unavailable" }, request, 503);
   }
 });

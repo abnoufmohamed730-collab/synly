@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   OTP_LIFETIME_SECONDS_CLIENT,
   passwordRecoveryService,
+  RecoveryServiceError,
   type DeliveryChannel,
   type OtpChallenge,
 } from "../services/password-recovery-service";
@@ -10,7 +11,7 @@ import { normalizeE164 } from "../lib/phone";
 
 export type RecoveryStep = "phone" | "otp" | "password" | "complete";
 
-type RecoveryError = "phone-invalid" | "otp-invalid" | "otp-expired" | "password-mismatch" | "password-too-short" | "request-failed";
+type RecoveryError = "phone-invalid" | "otp-invalid" | "otp-expired" | "password-mismatch" | "password-too-short" | "request-failed" | "rate-limited" | "service-unavailable";
 
 export function usePasswordRecovery() {
   const [step, setStep] = useState<RecoveryStep>("phone");
@@ -18,8 +19,15 @@ export function usePasswordRecovery() {
   const [channel, setChannel] = useState<DeliveryChannel>("whatsapp");
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(OTP_LIFETIME_SECONDS_CLIENT);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<RecoveryError | null>(null);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => setCooldownSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   useEffect(() => {
     if (step !== "otp" || remainingSeconds <= 0) return;
@@ -28,6 +36,7 @@ export function usePasswordRecovery() {
   }, [step, remainingSeconds]);
 
   const requestCode = useCallback(async (nextChannel = channel) => {
+    if (cooldownSeconds > 0) return null;
     const normalizedPhone = normalizeE164(phone);
     if (!normalizedPhone) {
       setError("phone-invalid");
@@ -42,13 +51,22 @@ export function usePasswordRecovery() {
       setRemainingSeconds(OTP_LIFETIME_SECONDS_CLIENT);
       setStep("otp");
       return nextChallenge;
-    } catch {
-      setError("request-failed");
+    } catch (cause) {
+      if (cause instanceof RecoveryServiceError && cause.status === 429) {
+        setCooldownSeconds(Math.max(1, cause.retryAfter));
+        setError("rate-limited");
+      } else if (cause instanceof RecoveryServiceError && cause.status === 503) {
+        setError("service-unavailable");
+      } else if (cause instanceof RecoveryServiceError && cause.status === 400) {
+        setError("phone-invalid");
+      } else {
+        setError("request-failed");
+      }
       return null;
     } finally {
       setLoading(false);
     }
-  }, [channel, phone]);
+  }, [channel, cooldownSeconds, phone]);
 
   const verifyCode = useCallback(async (code: string) => {
     if (!challenge) return false;
@@ -58,8 +76,9 @@ export function usePasswordRecovery() {
       setChallenge(await passwordRecoveryService.verifyOtp(challenge, code));
       setStep("password");
       return true;
-    } catch {
-      setError(remainingSeconds <= 0 ? "otp-expired" : "otp-invalid");
+    } catch (cause) {
+      if (cause instanceof RecoveryServiceError && cause.status === 503) setError("service-unavailable");
+      else setError(remainingSeconds <= 0 ? "otp-expired" : "otp-invalid");
       return false;
     } finally {
       setLoading(false);
@@ -82,8 +101,8 @@ export function usePasswordRecovery() {
       await passwordRecoveryService.resetPassword(challenge, password);
       setStep("complete");
       return true;
-    } catch {
-      setError("request-failed");
+    } catch (cause) {
+      setError(cause instanceof RecoveryServiceError && cause.status === 503 ? "service-unavailable" : "request-failed");
       return false;
     } finally {
       setLoading(false);
@@ -91,7 +110,7 @@ export function usePasswordRecovery() {
   }, [challenge]);
 
   return {
-    step, phone, setPhone, channel, setChannel, challenge, remainingSeconds, loading, error, setError,
+    step, phone, setPhone, channel, setChannel, challenge, remainingSeconds, cooldownSeconds, loading, error, setError,
     requestCode, verifyCode, resetPassword,
     backToPhone: () => { setStep("phone"); setError(null); },
   };

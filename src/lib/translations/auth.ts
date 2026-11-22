@@ -70,6 +70,10 @@ const auth: TranslationModule = {
     "recovery.errorMismatch": "The passwords do not match.",
     "recovery.errorPassword": "Use at least 8 characters and include 3 of: uppercase, lowercase, number, symbol.",
     "recovery.errorGeneric": "Something went wrong. Please try again.",
+    "recovery.errorRateLimited": "Too many requests. Wait for the countdown before trying again.",
+    "recovery.errorUnavailable": "Password recovery is temporarily unavailable. Please try again later.",
+    "recovery.retryCountdown": "Try again in {seconds}s",
+    "recovery.resetSuccess": "Your password was updated successfully.",
 
     // Register - shared
     "register.heroTitle": "Join the Synly Network",
@@ -305,6 +309,10 @@ const auth: TranslationModule = {
     "recovery.errorMismatch": "كلمتا المرور غير متطابقتين.",
     "recovery.errorPassword": "استخدم 8 أحرف على الأقل، و3 من: حرف كبير، حرف صغير، رقم، رمز.",
     "recovery.errorGeneric": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "recovery.errorRateLimited": "طلبات كثيرة. انتظر انتهاء العد التنازلي قبل المحاولة مجددًا.",
+    "recovery.errorUnavailable": "استعادة كلمة المرور غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.",
+    "recovery.retryCountdown": "أعد المحاولة بعد {seconds} ثانية",
+    "recovery.resetSuccess": "تم تحديث كلمة المرور بنجاح.",
 
     // Register - shared
     "register.heroTitle": "انضم إلى شبكة Synly",

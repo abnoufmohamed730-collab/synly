@@ -8,12 +8,12 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
+import { mapTileAttribution, mapTileUrl } from "../lib/map-config";
 
-// Fix default marker icons in Leaflet with Vite
 const customIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+  iconUrl: "/leaflet/marker-icon.png",
+  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+  shadowUrl: "/leaflet/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -60,10 +60,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
         scrollWheelZoom={false}
         style={{ width: "100%", height: "100%", background: "#090A0F" }}
       >
-        <TileLayer
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={mapTileAttribution} url={mapTileUrl} />
         <ClickHandler onChange={onChange} />
         {value && <Marker position={[value.lat, value.lng]} icon={customIcon} />}
       </MapContainer>

@@ -12,6 +12,7 @@ import L from "leaflet";
 import { Navigation, Radar, AlertCircle, Plus, Minus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/language-context";
+import { mapTileAttribution, mapTileUrl } from "../lib/map-config";
 import type { NearbyCenter } from "../services/request-service";
 
 interface LivePosition {
@@ -379,11 +380,7 @@ export function MapComponent({
         style={{ width: "100%", height: "100%", background: "#090A0F" }}
         zoomControl={false}
       >
-        {/* Free OpenStreetMap tiles - no API key required */}
-        <TileLayer
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={mapTileAttribution} url={mapTileUrl} />
         <LocationMarker onLocate={onLocate} onMapDragStart={onMapDragStart} onUserLocation={onUserLocation} />
         {centers.map((serviceCenter) => (
           <Marker

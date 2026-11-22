@@ -9,13 +9,26 @@ export interface OtpChallenge {
   resetToken?: string;
 }
 
+export class RecoveryServiceError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string, readonly retryAfter = 0) {
+    super(message);
+    this.name = "RecoveryServiceError";
+  }
+}
+
 const OTP_LIFETIME_SECONDS = 300;
 
 async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>(name, { body });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("The recovery service returned no response.");
-  if (typeof data === "object" && "error" in data && typeof data.error === "string") throw new Error(data.error);
+  if (error) {
+    const response = (error as { context?: Response }).context;
+    const status = response?.status ?? 0;
+    const retryAfter = Number(response?.headers.get("Retry-After") ?? 0);
+    const payload = response ? await response.clone().json().catch(() => null) as { error?: string; code?: string; retryAfter?: number } | null : null;
+    throw new RecoveryServiceError(payload?.error ?? error.message, status, payload?.code, payload?.retryAfter ?? retryAfter);
+  }
+  if (!data) throw new RecoveryServiceError("The recovery service returned no response.", 0);
+  if (typeof data === "object" && "error" in data && typeof data.error === "string") throw new RecoveryServiceError(data.error, 400);
   return data;
 }
 

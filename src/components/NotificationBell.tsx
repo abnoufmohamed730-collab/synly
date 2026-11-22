@@ -28,12 +28,15 @@ export function NotificationBell() {
       if (active && !error) setItems(data ?? []);
     };
     void load();
-    const channel = supabase.channel(`notifications:${user.id}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, ({ new: row }) => {
+    const channel = supabase.channel(`notifications:${user.id}:${crypto.randomUUID()}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, ({ new: row }) => {
       const notification = row as NotificationRecord;
       setItems((current) => [notification, ...current].slice(0, 30));
       toast(notification.title, { description: notification.message });
     }).subscribe();
-    return () => { active = false; void supabase.removeChannel(channel); };
+    return () => {
+      active = false;
+      void (async () => { await supabase.removeChannel(channel); })();
+    };
   }, [user?.id]);
 
   const markRead = async (item: NotificationRecord) => {

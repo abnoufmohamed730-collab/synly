@@ -10,6 +10,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Package, Pencil, Plus, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/auth-context";
+import { useLanguage } from "../context/language-context";
 import { supabase } from "../integrations/supabase/client";
 
 type CatalogItem = { id: string; service_center_id: string; item_type: "service" | "part"; name: string; description: string; price: number; stock: number | null; unit: string | null; is_active: boolean };
@@ -17,6 +18,7 @@ const emptyForm = { name: "", description: "", price: "", stock: "", unit: "pcs"
 
 export function CatalogPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [centerId, setCenterId] = useState<string | null>(null);
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [activeTab, setActiveTab] = useState<"service" | "part">("service");
@@ -45,7 +47,7 @@ export function CatalogPage() {
     const price = Number(form.price);
     const stock = Number(form.stock);
     if (!centerId || !form.name.trim() || !Number.isFinite(price) || price < 0 || (activeTab === "part" && (!Number.isInteger(stock) || stock < 0))) {
-      toast.error("Enter a name, valid price, and valid stock quantity for parts.");
+      toast.error(t("ops.enterCatalogFields"));
       return;
     }
     setSaving(true);
@@ -68,9 +70,9 @@ export function CatalogPage() {
   };
 
   const visibleItems = items.filter((item) => item.item_type === activeTab);
-  if (user && !user.verified) return <Card className="glass-card border-amber-500/20"><CardContent className="p-6"><h1 className="text-2xl font-bold text-amber-200">Pending Verification</h1><p className="mt-2 text-sm text-muted-foreground">Catalog editing and publishing unlock after your service center is approved.</p><Button className="mt-4" variant="outline" onClick={() => window.location.assign("/dashboard/verification")}>Upload documents</Button></CardContent></Card>;
+  if (user && !user.verified) return <Card className="glass-card border-amber-500/20"><CardContent className="p-6"><h1 className="text-2xl font-bold text-amber-200">{t("ops.pendingVerification")}</h1><p className="mt-2 text-sm text-muted-foreground">{t("ops.pendingCatalog")}</p><Button className="mt-4" variant="outline" onClick={() => window.location.assign("/dashboard/verification")}>{t("ops.uploadDocuments")}</Button></CardContent></Card>;
   return <div className="space-y-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-3xl font-bold text-foreground">Catalog & Inventory</h1><p className="text-muted-foreground">Manage services and spare parts from your live catalog.</p></div><Button onClick={openAdd} disabled={!centerId} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Plus className="me-2 h-4 w-4" />Add {activeTab === "service" ? "Service" : "Part"}</Button></div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-3xl font-bold text-foreground">{t("ops.catalogTitle")}</h1><p className="text-muted-foreground">{t("ops.catalogDesc")}</p></div><Button onClick={openAdd} disabled={!centerId} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Plus className="me-2 h-4 w-4" />{activeTab === "service" ? t("ops.addService") : t("ops.addPart")}</Button></div>
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "service" | "part")}><TabsList className="grid w-full grid-cols-2 sm:w-auto"><TabsTrigger value="service" className="gap-2"><Wrench className="h-4 w-4" />Services</TabsTrigger><TabsTrigger value="part" className="gap-2"><Package className="h-4 w-4" />Parts</TabsTrigger></TabsList><TabsContent value={activeTab} className="mt-6">
       {loading ? <div className="glass-card rounded-2xl p-10 text-center text-muted-foreground">Loading catalog…</div> : visibleItems.length === 0 ? <Card className="glass-card"><CardContent className="py-12 text-center"><Package className="mx-auto mb-4 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold text-foreground">No {activeTab === "service" ? "services" : "parts"} yet</h2><p className="mt-2 text-sm text-muted-foreground">Create a live catalog entry to offer it to customers.</p></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleItems.map((item) => <Card key={item.id} className="glass-card"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-foreground">{item.name}</h2><p className="mt-1 text-sm text-muted-foreground">{item.description}</p></div><Badge variant="outline" className={item.is_active ? "border-emerald-500/30 text-emerald-300" : "border-slate-500/30 text-slate-400"}>{item.is_active ? "Active" : "Archived"}</Badge></div><div className="mt-5 flex items-center justify-between"><span className="text-xl font-bold text-foreground">EGP {Number(item.price).toLocaleString()}</span>{item.item_type === "part" && <span className="text-sm text-muted-foreground">{item.stock} {item.unit}</span>}</div><div className="mt-4 flex gap-2"><Button variant="outline" className="flex-1" onClick={() => openEdit(item)}><Pencil className="me-2 h-4 w-4" />Edit</Button><Button variant="outline" onClick={() => void toggleActive(item)}>{item.is_active ? "Archive" : "Restore"}</Button></div></CardContent></Card>)}</div>}
     </TabsContent></Tabs>

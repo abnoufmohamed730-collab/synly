@@ -19,7 +19,6 @@ import { UserRequestsPage } from "./pages/user-requests";
 import { UserCatalogPage } from "./pages/user-catalog";
 import { ShopsPage } from "./pages/shops";
 import { PageTransition } from "./components/PageTransition";
-import { DevTestAccountsPage } from "./pages/dev-test-accounts";
 import { VendorVerificationPage } from "./pages/vendor-verification";
 import { AdminVerificationReviewPage } from "./pages/admin-verification-review";
 
@@ -36,8 +35,6 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              {import.meta.env.DEV && <Route path="/__dev/seed-test-accounts" element={<DevTestAccountsPage />} />}
-
               {/* Protected User Experience: accessible by car owners & vendors */}
               <Route element={<ProtectedRoute allowedRoles={["user", "vendor"]} requiredMode="user" />}>
                 <Route element={<PageTransition />}>

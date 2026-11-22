@@ -30,6 +30,8 @@ export function ForgotPasswordPage() {
     "password-mismatch": t("recovery.errorMismatch"),
     "password-too-short": t("recovery.errorPassword"),
     "request-failed": t("recovery.errorGeneric"),
+    "rate-limited": t("recovery.errorRateLimited"),
+    "service-unavailable": t("recovery.errorUnavailable"),
   };
 
   const handleRequest = async (event: FormEvent) => {
@@ -162,8 +164,8 @@ export function ForgotPasswordPage() {
                     </div>
                   </div>
                   {recovery.error && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{errorText[recovery.error]}</p>}
-                  <Button type="submit" disabled={recovery.loading} className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-orange-500 font-bold text-white shadow-lg shadow-blue-950/40">
-                    {recovery.loading ? <><span className="me-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />{t("recovery.sending")}</> : <>{t("recovery.sendCode")}<ArrowRight className={`ms-2 h-4 w-4 ${isArabic ? "rotate-180" : ""}`} /></>}
+                  <Button type="submit" disabled={recovery.loading || recovery.cooldownSeconds > 0} className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-orange-500 font-bold text-white shadow-lg shadow-blue-950/40">
+                    {recovery.loading ? <><span className="me-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />{t("recovery.sending")}</> : recovery.cooldownSeconds > 0 ? t("recovery.retryCountdown", { seconds: recovery.cooldownSeconds }) : <>{t("recovery.sendCode")}<ArrowRight className={`ms-2 h-4 w-4 ${isArabic ? "rotate-180" : ""}`} /></>}
                   </Button>
                 </form>
               </>

@@ -33,6 +33,8 @@ serve(async (request) => {
     if (profileError || !profile?.user_id) throw new Error("Reset account lookup failed");
     const { error: updateError } = await admin.auth.admin.updateUserById(profile.user_id, { password });
     if (updateError) throw new Error("Password update failed");
+    const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: profile.user_id });
+    if (revokeError) throw new Error("Session revocation failed");
     await admin.from("password_reset_tokens").update({ used_at: new Date().toISOString() }).eq("phone_e164", record.phone_e164).is("used_at", null);
     await admin.from("notifications").insert({ user_id: profile.user_id, event_type: "password_reset", title: "Password changed", message: "Your Synly password was changed. If this was not you, contact support." });
     return jsonResponse({ ok: true, message: "Password updated successfully." }, request);

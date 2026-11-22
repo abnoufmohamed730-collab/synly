@@ -113,7 +113,7 @@ export function UserMapDashboardPage() {
 
   useEffect(() => {
     if (!user || !activeRequest) return;
-    return subscribeToCustomerRequestChanges(user.id, [activeRequest.id], () => {
+    return subscribeToCustomerRequestChanges(user.id, () => {
       void getCustomerRequests(user.id).then((requests) => {
         setActiveRequest(requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null);
       }).catch((error: Error) => toast.error(error.message));

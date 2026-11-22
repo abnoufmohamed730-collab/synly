@@ -40,12 +40,12 @@ export function corsHeadersFor(request: Request): Record<string, string> | null 
   };
 }
 
-export function jsonResponse(body: Record<string, unknown>, request: Request, status = 200): Response {
+export function jsonResponse(body: Record<string, unknown>, request: Request, status = 200, extraHeaders: Record<string, string> = {}): Response {
   const headers = corsHeadersFor(request);
   if (!headers) return new Response(null, { status: 403 });
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
+    headers: { ...headers, ...extraHeaders, "Content-Type": "application/json; charset=utf-8" },
   });
 }
 

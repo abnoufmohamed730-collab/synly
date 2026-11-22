@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
+import { useLanguage } from "../context/language-context";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -12,6 +13,7 @@ import { getOwnCenter, getVendorOffers, getVendorRequests, subscribeToCenterRequ
 
 export function DashboardPage() {
   const { user, updateUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [centerId, setCenterId] = useState<string | null>(null);
   const [status, setStatus] = useState(user?.status || "offline");
@@ -95,14 +97,14 @@ export function DashboardPage() {
   const handleStatusChange = async (checked: boolean) => {
     if (!user) return;
     if (checked && !user.verified) {
-      toast.error("Your center must be approved before going online.");
+      toast.error(t("ops.approvalRequired"));
       return;
     }
     const nextStatus = checked ? "online" : "offline";
     try {
       await updateUser({ status: nextStatus });
       setStatus(nextStatus);
-      toast.success(checked ? "Your center is now online." : "Your center is now offline.");
+      toast.success(checked ? t("ops.onlineNow") : t("ops.offlineNow"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update availability.");
     }
@@ -112,33 +114,33 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.businessName?.split(" ")[0] || "Vendor"}! Here’s your live overview.</p>
+          <h1 className="text-3xl font-bold text-foreground">{t("ops.dashboard")}</h1>
+          <p className="text-muted-foreground">{t("ops.dashboardWelcome", { name: user?.businessName?.split(" ")[0] || "Vendor" })}</p>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
           {status === "online" ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-slate-400" />}
-          <Label htmlFor="center-online" className="text-sm font-medium text-foreground">{status === "online" ? "Online" : "Offline"}</Label>
+          <Label htmlFor="center-online" className="text-sm font-medium text-foreground">{status === "online" ? t("ops.online") : t("ops.offline")}</Label>
           <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} disabled={!user?.verified} aria-label="Toggle online status" />
         </div>
       </div>
 
-      {!centerId && !loading && <Card className="glass-card border-amber-500/20"><CardContent className="p-4 text-sm text-amber-200">No service center is linked to this vendor profile yet.</CardContent></Card>}
-      {user && !user.verified && <Card className="glass-card border-amber-500/20"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-amber-200">Pending Verification</p><p className="text-sm text-muted-foreground">Submit your business documents. Requests, offers, catalog publishing, and online availability unlock after approval.</p></div><Button variant="outline" onClick={() => navigate("/dashboard/verification")}>Upload documents</Button></CardContent></Card>}
+      {!centerId && !loading && <Card className="glass-card border-amber-500/20"><CardContent className="p-4 text-sm text-amber-200">{t("ops.noCenter")}</CardContent></Card>}
+      {user && !user.verified && <Card className="glass-card border-amber-500/20"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-amber-200">{t("ops.pendingVerification")}</p><p className="text-sm text-muted-foreground">{t("ops.pendingVendorDesc")}</p></div><Button variant="outline" onClick={() => navigate("/dashboard/verification")}>{t("ops.uploadDocuments")}</Button></CardContent></Card>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Active Requests" value={loading ? "—" : activeRequests.length} caption="Assigned or awaiting offers" icon={<Users className="h-5 w-5 text-orange-400" />} />
-        <MetricCard title="Completed Jobs" value={loading ? "—" : completedRequests.length} caption="All completed jobs" icon={<CheckCircle className="h-5 w-5 text-green-400" />} />
-        <MetricCard title="Total Earnings" value={loading ? "—" : `EGP ${totalEarnings.toLocaleString()}`} caption="From completed accepted offers" icon={<DollarSign className="h-5 w-5 text-amber-400" />} />
-        <MetricCard title="Availability" value={status} caption="Controls incoming request eligibility" icon={<TrendingUp className="h-5 w-5 text-blue-400" />} />
+        <MetricCard title={t("ops.activeRequests")} value={loading ? "—" : activeRequests.length} caption={t("ops.activeRequestsCaption")} icon={<Users className="h-5 w-5 text-orange-400" />} />
+        <MetricCard title={t("ops.completedJobs")} value={loading ? "—" : completedRequests.length} caption={t("ops.completedJobsCaption")} icon={<CheckCircle className="h-5 w-5 text-green-400" />} />
+        <MetricCard title={t("ops.totalEarnings")} value={loading ? "—" : `EGP ${totalEarnings.toLocaleString()}`} caption={t("ops.earningsCaption")} icon={<DollarSign className="h-5 w-5 text-amber-400" />} />
+        <MetricCard title={t("ops.availability")} value={status === "online" ? t("ops.online") : t("ops.offline")} caption={t("ops.availabilityCaption")} icon={<TrendingUp className="h-5 w-5 text-blue-400" />} />
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <div><h2 className="text-xl font-bold text-foreground">Live Request Feed</h2><p className="text-sm text-muted-foreground">Requests in your approved service area</p></div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/requests")}>Open queue<ArrowRight className="ms-2 h-4 w-4" /></Button>
+          <div><h2 className="text-xl font-bold text-foreground">{t("ops.liveFeed")}</h2><p className="text-sm text-muted-foreground">{t("ops.approvedArea")}</p></div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/requests")}>{t("ops.openQueue")}<ArrowRight className="ms-2 h-4 w-4" /></Button>
         </div>
-        {loading ? <div className="glass-card rounded-2xl p-8 text-center text-muted-foreground">Loading incoming requests…</div> : incomingRequests.length === 0 ? (
-          <Card className="glass-card"><CardContent className="py-12 text-center"><Car className="mx-auto mb-4 h-12 w-12 text-muted-foreground" /><h3 className="mb-2 text-lg font-medium text-foreground">No incoming requests</h3><p className="text-muted-foreground">New eligible requests will appear here in real time while your center is online.</p></CardContent></Card>
+        {loading ? <div className="glass-card rounded-2xl p-8 text-center text-muted-foreground">{t("ops.loadingRequests")}</div> : incomingRequests.length === 0 ? (
+          <Card className="glass-card"><CardContent className="py-12 text-center"><Car className="mx-auto mb-4 h-12 w-12 text-muted-foreground" /><h3 className="mb-2 text-lg font-medium text-foreground">{t("ops.noIncoming")}</h3><p className="text-muted-foreground">{t("ops.noIncomingDesc")}</p></CardContent></Card>
         ) : <div className="space-y-3">{incomingRequests.slice(0, 5).map((request) => <RequestFeedCard key={request.id} request={request} onOpen={() => navigate("/dashboard/requests")} />)}</div>}
       </div>
     </div>

@@ -99,10 +99,10 @@ export function UserRequestsPage() {
 
   useEffect(() => {
     if (!user) return;
-    return subscribeToCustomerRequestChanges(user.id, requests.map((request) => request.id), () => {
+    return subscribeToCustomerRequestChanges(user.id, () => {
       void refreshRequests().catch((error: Error) => toast.error(error.message));
     });
-  }, [user?.id, requests, refreshRequests]);
+  }, [user?.id, refreshRequests]);
 
   useEffect(() => {
     setForm((current) => ({ ...current, requestType: preferredType }));

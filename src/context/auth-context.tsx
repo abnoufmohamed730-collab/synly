@@ -1,21 +1,25 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-types";
 import { supabase } from "../integrations/supabase/client";
 import { readStoredMode, writeStoredMode } from "./auth-session";
 import { buildSignupMetadata, fetchProfileSnapshot, mapSnapshotToUser } from "../services/profile-service";
 import { normalizeE164 } from "../lib/phone";
+import { useLanguage } from "./language-context";
 
 export type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { setLang } = useLanguage();
+  const lastHydratedUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [activeMode, setActiveMode] = useState<AppMode>(readStoredMode());
   const [isLoading, setIsLoading] = useState(true);
 
   const hydrateUser = useCallback(async (authUser: { id: string; email?: string } | null): Promise<User | null> => {
     if (!authUser) {
+      lastHydratedUserId.current = null;
       setUser(null);
       setActiveMode("user");
       writeStoredMode("user");
@@ -26,7 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const snapshot = await fetchProfileSnapshot(authUser.id);
       const nextUser = mapSnapshotToUser(snapshot, authUser);
+      lastHydratedUserId.current = authUser.id;
       setUser(nextUser);
+      if (snapshot.profile.locale === "ar" || snapshot.profile.locale === "en") setLang(snapshot.profile.locale);
       setActiveMode((current) => {
         const next = nextUser.role === "vendor" ? current : "user";
         writeStoredMode(next);
@@ -34,16 +40,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return nextUser;
     } catch (error) {
-      setUser(null);
+      setUser((current) => current?.id === authUser.id ? current : null);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setLang]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void hydrateUser(session?.user ?? null).catch(() => undefined);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED") return;
+      const sessionUser = session?.user ?? null;
+      if (sessionUser && sessionUser.id === lastHydratedUserId.current) return;
+      window.setTimeout(() => {
+        if (sessionUser && sessionUser.id === lastHydratedUserId.current) return;
+        void hydrateUser(sessionUser).catch(() => undefined);
+      }, 0);
     });
     return () => subscription.unsubscribe();
   }, [hydrateUser]);
