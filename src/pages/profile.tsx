@@ -229,7 +229,7 @@ function VendorProfile() {
                 onClick={handleSave}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 me-2" />
                 {saving ? "Saving…" : "Save Changes"}
               </Button>
             </CardContent>
@@ -267,7 +267,7 @@ function VendorProfile() {
                 onClick={() => setAddOpen(true)}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 Add Member
               </Button>
             </CardHeader>
@@ -327,7 +327,7 @@ function VendorProfile() {
                 onClick={savePreferences}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 me-2" />
                 {saving ? "Saving…" : "Save Radius"}
               </Button>
             </CardContent>
@@ -358,7 +358,7 @@ function VendorProfile() {
                 onClick={savePreferences}
                 className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 me-2" />
                 {saving ? "Saving…" : "Save Preferences"}
               </Button>
             </CardContent>

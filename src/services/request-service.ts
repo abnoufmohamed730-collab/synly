@@ -123,7 +123,11 @@ export async function declineServiceRequest(requestId: string) { await unwrap(su
 export async function cancelServiceRequest(requestId: string) { return unwrap<string>(supabase.rpc("cancel_service_request", { p_request_id: requestId })); }
 export async function transitionServiceRequest(requestId: string, status: "in_progress" | "completed") { return unwrap<string>(supabase.rpc("transition_service_request", { p_request_id: requestId, p_to_status: status })); }
 
-function subscribeDebounced(channelName: string, configure: (channel: ReturnType<typeof supabase.channel>, onChange: () => void) => void, onChange: () => void) {
+type SubscriptionCleanup = () => void;
+
+const activeSubscriptions = new Map<string, SubscriptionCleanup>();
+
+function subscribeDebounced(channelName: string, configure: (channel: ReturnType<typeof supabase.channel>, onChange: () => void) => void, onChange: () => void): SubscriptionCleanup {
   let timer: number | undefined;
   const schedule = () => {
     window.clearTimeout(timer);
@@ -138,16 +142,34 @@ function subscribeDebounced(channelName: string, configure: (channel: ReturnType
   };
 }
 
-export function subscribeToCustomerRequestChanges(userId: string, onChange: () => void) {
-  return subscribeDebounced(`customer-requests:${userId}`, (channel, changed) => {
+export function subscribeToCustomerRequestChanges(userId: string, onChange: () => void): SubscriptionCleanup {
+  const key = `customer:${userId}`;
+  // Clean up any existing subscription for this user before creating a new one
+  const existing = activeSubscriptions.get(key);
+  if (existing) existing();
+  const cleanup = subscribeDebounced(`customer-requests:${userId}`, (channel, changed) => {
     channel.on("postgres_changes", { event: "*", schema: "public", table: "service_requests", filter: `customer_id=eq.${userId}` }, changed)
       .on("postgres_changes", { event: "*", schema: "public", table: "request_offers" }, changed);
   }, onChange);
+  activeSubscriptions.set(key, cleanup);
+  return () => {
+    cleanup();
+    activeSubscriptions.delete(key);
+  };
 }
 
-export function subscribeToCenterRequestChanges(centerId: string, onChange: () => void) {
-  return subscribeDebounced(`service-center-requests:${centerId}`, (channel, changed) => {
+export function subscribeToCenterRequestChanges(centerId: string, onChange: () => void): SubscriptionCleanup {
+  const key = `center:${centerId}`;
+  // Clean up any existing subscription for this center before creating a new one
+  const existing = activeSubscriptions.get(key);
+  if (existing) existing();
+  const cleanup = subscribeDebounced(`service-center-requests:${centerId}`, (channel, changed) => {
     channel.on("postgres_changes", { event: "*", schema: "public", table: "service_requests" }, changed)
       .on("postgres_changes", { event: "*", schema: "public", table: "request_offers", filter: `service_center_id=eq.${centerId}` }, changed);
   }, onChange);
+  activeSubscriptions.set(key, cleanup);
+  return () => {
+    cleanup();
+    activeSubscriptions.delete(key);
+  };
 }

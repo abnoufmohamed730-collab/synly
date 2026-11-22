@@ -112,13 +112,14 @@ export function UserMapDashboardPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user || !activeRequest) return;
+    if (!user) return;
     return subscribeToCustomerRequestChanges(user.id, () => {
       void getCustomerRequests(user.id).then((requests) => {
-        setActiveRequest(requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null);
+        const nextActive = requests.find((request) => ["pending", "offered", "accepted", "in_progress"].includes(request.status)) ?? null;
+        setActiveRequest((current) => (current?.id === nextActive?.id ? current : nextActive));
       }).catch((error: Error) => toast.error(error.message));
     });
-  }, [user?.id, activeRequest?.id]);
+  }, [user?.id]);
 
   const handleLocate = () => {
     setSheetExpanded(false);
@@ -232,7 +233,7 @@ export function UserMapDashboardPage() {
                 onClick={() => navigate("/user/requests")}
                 className="hidden sm:inline-flex bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 {t("common.newRequest")}
               </Button>
             </div>

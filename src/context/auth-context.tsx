@@ -40,7 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return nextUser;
     } catch (error) {
-      setUser((current) => current?.id === authUser.id ? current : null);
+      // Preserve existing user state on transient network errors during hydration;
+      // only clear when the session itself is invalid (actual auth failure).
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      const isAuthFailure = message.includes("jwt") || message.includes("token") || message.includes("session") || message.includes("auth") || message.includes("expired");
+      if (isAuthFailure) {
+        lastHydratedUserId.current = null;
+        setUser(null);
+        setActiveMode("user");
+        writeStoredMode("user");
+      }
       throw error;
     } finally {
       setIsLoading(false);
@@ -49,10 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore TOKEN_REFRESHED noise safely
       if (event === "TOKEN_REFRESHED") return;
+
       const sessionUser = session?.user ?? null;
+
+      // Avoid double hydration on login: if we already hydrated this user, skip
       if (sessionUser && sessionUser.id === lastHydratedUserId.current) return;
+
+      // Use setTimeout(..., 0) for hydration to avoid blocking the callback
       window.setTimeout(() => {
+        // Double-check after timeout to avoid race conditions
         if (sessionUser && sessionUser.id === lastHydratedUserId.current) return;
         void hydrateUser(sessionUser).catch(() => undefined);
       }, 0);
