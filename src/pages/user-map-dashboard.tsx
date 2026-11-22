@@ -41,7 +41,7 @@ export function UserMapDashboardPage() {
   const [serviceType, setServiceType] = useState("");
   const [openNow, setOpenNow] = useState("all");
   const [sheetExpanded, setSheetExpanded] = useState(true);
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [position, setPosition] = useState<{ lat: number; lng: number }>({ lat: 31.2001, lng: 29.9187 });
   const [centers, setCenters] = useState<NearbyCenter[]>([]);
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -125,7 +125,7 @@ export function UserMapDashboardPage() {
 
       {/* Map */}
       <MapComponent
-        zoom={3}
+              zoom={12}
         centers={centers}
         onUserLocation={setPosition}
         onLocate={handleLocate}

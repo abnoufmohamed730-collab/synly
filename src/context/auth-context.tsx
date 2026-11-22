@@ -127,11 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     setIsLoading(true);
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      setIsLoading(false);
-      throw error;
-    }
-    setUser(null);
+        if (error) await supabase.auth.signOut({ scope: "local" });
+        setUser(null);
     setActiveMode("user");
     writeStoredMode("user");
     setIsLoading(false);

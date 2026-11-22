@@ -150,9 +150,18 @@ function LocationMarker({
     liveFollowRef.current = liveFollow;
   }, [liveFollow]);
 
-  // Start watchPosition when permission is granted
   useEffect(() => {
-    if (permissionState !== "granted") return;
+    if (!("permissions" in navigator)) return;
+    let active = true;
+    void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+      if (active && permission.state === "denied") setPermissionState("denied");
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  // Keep continuous GPS tracking active only while live follow is enabled.
+  useEffect(() => {
+    if (permissionState !== "granted" || !liveFollow) return;
     if (!("geolocation" in navigator)) {
       setStatus("error");
       setPermissionState("denied");
@@ -164,16 +173,16 @@ function LocationMarker({
         const { latitude, longitude, accuracy, heading, speed } = coords.coords;
         const next: LivePosition = { lat: latitude, lng: longitude, accuracy, heading, speed };
         setPosition(next);
+        onUserLocationRef.current?.({ lat: latitude, lng: longitude });
         setStatus("active");
-        if (liveFollowRef.current) {
-          map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
-        }
+        map.flyTo([latitude, longitude], map.getZoom(), { animate: true });
       },
       (error) => {
         setStatus("error");
-        setPermissionState("denied");
+        if (error.code === 1) setPermissionState("denied");
+        toast.error(t(error.code === 1 ? "map.gpsDenied" : error.code === 3 ? "map.locationTimeout" : "map.locationUnavailable"));
       },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
     );
     watchIdRef.current = id;
     return () => {
@@ -182,7 +191,7 @@ function LocationMarker({
         watchIdRef.current = null;
       }
     };
-  }, [permissionState, map, t]);
+  }, [permissionState, liveFollow, map, t]);
 
   // Pause live follow when the user manually drags the map
   useEffect(() => {
@@ -219,10 +228,10 @@ function LocationMarker({
         onLocateRef.current?.();
       },
       (error) => {
-        setPermissionState("denied");
-        setStatus("error");
-        toast.error(t("map.gpsDenied"));
-      },
+              if (error.code === 1) setPermissionState("denied");
+              setStatus("error");
+              toast.error(t(error.code === 1 ? "map.gpsDenied" : error.code === 3 ? "map.locationTimeout" : "map.locationUnavailable"));
+            },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
   };
@@ -362,8 +371,8 @@ function LocationMarker({
 }
 
 export function MapComponent({
-  center = [0, 0],
-  zoom = 3,
+  center = [31.2001, 29.9187],
+    zoom = 12,
   onLocate,
   onMapDragStart,
   onUserLocation,

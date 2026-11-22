@@ -113,7 +113,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
               <User className="h-4 w-4" />
             </div>
             <span className="text-sm font-medium text-slate-200 hidden sm:block max-w-[120px] truncate">
-              {user?.businessName || "User"}
+              {user?.businessName || t("common.userFallback")}
             </span>
             <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block" />
           </button>
@@ -127,7 +127,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
               />
               <div className="absolute end-0 mt-2 w-52 rounded-2xl border border-white/10 bg-slate-950/90 backdrop-blur-2xl shadow-2xl z-50 py-1.5">
                 <div className="px-4 py-2.5 border-b border-white/10">
-                  <p className="text-sm font-semibold text-white truncate">{user?.businessName || "User"}</p>
+                  <p className="text-sm font-semibold text-white truncate">{user?.businessName || t("common.userFallback")}</p>
                   <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                 </div>
                 <NavLink

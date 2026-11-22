@@ -76,6 +76,10 @@ export async function searchNearbyCenters(params: { latitude: number; longitude:
 }
 
 export async function createServiceRequest(request: NewServiceRequest) {
+  if (!Number.isFinite(request.latitude) || request.latitude < -90 || request.latitude > 90 || !Number.isFinite(request.longitude) || request.longitude < -180 || request.longitude > 180) throw new Error("Enter valid latitude and longitude coordinates.");
+  if (request.description.trim().length < 5 || request.description.length > 2000) throw new Error("Description must be between 5 and 2000 characters.");
+  if ((request.address?.length ?? 0) > 300) throw new Error("Address must be 300 characters or fewer.");
+  if (request.scheduledAt && new Date(request.scheduledAt).getTime() <= Date.now()) throw new Error("Scheduled time must be in the future.");
   return unwrap<string>(supabase.rpc("create_service_request", {
     p_request_type: request.requestType, p_urgency: request.urgency, p_description: request.description,
     p_latitude: request.latitude, p_longitude: request.longitude, p_address: request.address || null,

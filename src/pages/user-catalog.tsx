@@ -22,13 +22,24 @@ export function UserCatalogPage() {
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   useEffect(() => {
-    void supabase.from("service_centers").select("id,name,service_type").eq("verification_status", "approved").order("name").then(({ data, error }) => {
-      if (error) toast.error(t("screens.centersLoadError"));
-      const available = data ?? [];
-      setCenters(available);
-      if (available[0]) setCenterId(available[0].id);
-    }).finally(() => setLoading(false));
-  }, [t]);
+      let active = true;
+      const loadCenters = async () => {
+        try {
+          const { data, error } = await supabase.from("service_centers").select("id,name,service_type").eq("verification_status", "approved").order("name");
+          if (!active) return;
+          if (error) toast.error(t("screens.centersLoadError"));
+          const available = data ?? [];
+          setCenters(available);
+          if (available[0]) setCenterId(available[0].id);
+                } catch {
+                  if (active) toast.error(t("screens.centersLoadError"));
+                } finally {
+                  if (active) setLoading(false);
+        }
+      };
+      void loadCenters();
+      return () => { active = false; };
+    }, [t]);
 
   useEffect(() => {
     if (!centerId) { setItems([]); return; }
@@ -53,8 +64,10 @@ export function UserCatalogPage() {
     setOrdering(false);
     if (error) { toast.error(error.message); return; }
     setLastOrderId(data);
-    setQuantities({});
-    toast.success(t("ops.orderPlaced"));
+        setQuantities({});
+        const { data: refreshedItems, error: refreshError } = await supabase.from("catalog_items").select("id,service_center_id,item_type,name,description,price,stock,unit").eq("service_center_id", centerId).eq("is_active", true).order("item_type").order("name");
+        if (!refreshError) setItems(refreshedItems ?? []);
+        toast.success(t("ops.orderPlaced"));
   };
 
   const services = items.filter((item) => item.item_type === "service");

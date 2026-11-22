@@ -136,6 +136,7 @@ const common: TranslationModule = {
             "common.availabilityUpdateFailed": "Could not update availability.",
                 "common.dashboardLoadFailed": "Could not load your dashboard.",
                 "common.viewAndRespond": "View and respond",
+                "common.userFallback": "User",
             "map.centerPopupStatus": "{distance} {unit} · {status}",
           },
   ar: {
@@ -273,6 +274,7 @@ const common: TranslationModule = {
         "common.availabilityUpdateFailed": "تعذر تحديث حالة التوفر.",
             "common.dashboardLoadFailed": "تعذر تحميل لوحة التحكم.",
             "common.viewAndRespond": "عرض والرد",
+            "common.userFallback": "مستخدم",
         "map.centerPopupStatus": "{distance} {unit} · {status}",
       },
 };

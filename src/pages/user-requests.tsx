@@ -37,7 +37,7 @@ const requestTypes: RequestType[] = [
   "other",
 ];
 
-const activeStatuses = ["pending", "offered", "accepted", "in_progress"];
+const activeStatuses = ["pending", "offered", "accepted"];
 
 const statusTranslationKeys: Record<string, string> = {
   pending: "ops.pending",
@@ -75,8 +75,9 @@ export function UserRequestsPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [vehicles, setVehicles] = useState<Array<{ id: string; make: string | null; model: string; year: number | null; plate_number: string }>>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [actionRequestId, setActionRequestId] = useState<string | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({
     requestType: preferredType,
     urgency: "emergency" as RequestUrgency,
@@ -173,24 +174,32 @@ export function UserRequestsPage() {
   };
 
   const handleAcceptOffer = async (offerId: string) => {
-    try {
-      await acceptRequestOffer(offerId);
-      await refreshRequests();
-      toast.success(t("ops.offerAccepted"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("screens.acceptFailed"));
-    }
-  };
-
-  const handleCancel = async (requestId: string) => {
-    try {
-      await cancelServiceRequest(requestId);
-      await refreshRequests();
-      toast.success(t("ops.requestCancelled"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("screens.cancelFailed"));
-    }
-  };
+      if (!window.confirm(t("ops.confirmAcceptOffer"))) return;
+      setActionRequestId(offerId);
+      try {
+        await acceptRequestOffer(offerId);
+        await refreshRequests();
+        toast.success(t("ops.offerAccepted"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t("screens.acceptFailed"));
+      } finally {
+        setActionRequestId(null);
+      }
+    };
+  
+    const handleCancel = async (requestId: string) => {
+      if (!window.confirm(t("ops.confirmCancelRequest"))) return;
+      setActionRequestId(requestId);
+      try {
+        await cancelServiceRequest(requestId);
+        await refreshRequests();
+        toast.success(t("ops.requestCancelled"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : t("screens.cancelFailed"));
+      } finally {
+        setActionRequestId(null);
+      }
+    };
 
   return (
     <div className="space-y-6">
@@ -226,7 +235,7 @@ export function UserRequestsPage() {
                       <span className="capitalize">{t(`userRequests.urgency${request.urgency.charAt(0).toUpperCase()}${request.urgency.slice(1)}`)}</span>
                     </div>
                   </div>
-                  {activeStatuses.includes(request.status) && <Button variant="outline" size="sm" onClick={() => handleCancel(request.id)} className="shrink-0 border-white/10 text-muted-foreground hover:text-red-400"><X className="me-1.5 h-4 w-4" />{t("ops.cancelRequest")}</Button>}
+                  {activeStatuses.includes(request.status) && <Button variant="outline" size="sm" disabled={actionRequestId === request.id} onClick={() => void handleCancel(request.id)} className="shrink-0 border-white/10 text-muted-foreground hover:text-red-400"><X className="me-1.5 h-4 w-4" />{t("ops.cancelRequest")}</Button>}
                 </div>
 
                 {request.offers?.length ? <div className="grid gap-3 border-t border-white/10 pt-4 md:grid-cols-2">
@@ -239,7 +248,7 @@ export function UserRequestsPage() {
                       <p className="mt-3 text-xl font-bold text-orange-300">{offer.currency} {Number(offer.price).toFixed(2)}</p>
                       {offer.message && <p className="mt-1 text-sm text-muted-foreground">{offer.message}</p>}
                       {offer.estimated_arrival_minutes !== null && <p className="mt-2 text-xs text-muted-foreground">{t("ops.estimatedArrival", { minutes: offer.estimated_arrival_minutes })}</p>}
-                      {offer.status === "pending" && ["pending", "offered"].includes(request.status) && <Button size="sm" className="mt-3 bg-blue-600 text-white hover:bg-blue-500" onClick={() => void handleAcceptOffer(offer.id)}><Check className="me-1.5 h-4 w-4" />{t("ops.acceptOffer")}</Button>}
+                      {offer.status === "pending" && ["pending", "offered"].includes(request.status) && <Button size="sm" disabled={actionRequestId === offer.id} className="mt-3 bg-blue-600 text-white hover:bg-blue-500" onClick={() => void handleAcceptOffer(offer.id)}><Check className="me-1.5 h-4 w-4" />{t("ops.acceptOffer")}</Button>}
                     </div>
                   ))}
                 </div> : request.status === "pending" || request.status === "offered" ? <p className="border-t border-white/10 pt-3 text-xs text-muted-foreground">{t("ops.waitingOffers")}</p> : null}
@@ -257,10 +266,10 @@ export function UserRequestsPage() {
               <div className="space-y-2"><Label>{t("ops.serviceType")}</Label><Select value={form.requestType} onValueChange={(value: RequestType) => setForm({ ...form, requestType: value })}><SelectTrigger aria-label={t("ops.serviceType")}><SelectValue /></SelectTrigger><SelectContent>{requestTypes.map((value) => <SelectItem key={value} value={value}>{t(`userRequests.${value}`)}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2"><Label>{t("ops.urgency")}</Label><Select value={form.urgency} onValueChange={(value: RequestUrgency) => setForm({ ...form, urgency: value })}><SelectTrigger aria-label={t("ops.urgency")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="emergency">{t("userRequests.urgencyEmergency")}</SelectItem><SelectItem value="urgent">{t("userRequests.urgencyUrgent")}</SelectItem><SelectItem value="normal">{t("userRequests.urgencyNormal")}</SelectItem><SelectItem value="scheduled">{t("userRequests.urgencyScheduled")}</SelectItem></SelectContent></Select></div>
             </div>
-            <div className="space-y-2"><Label htmlFor="requestDescription">{t("ops.descriptionRequired")}</Label><Textarea id="requestDescription" required minLength={5} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder={t("screens.descriptionPlaceholder")} /></div>
-            <div className="space-y-2"><Label htmlFor="requestAddress">{t("screens.addressLabel")}</Label><Input id="requestAddress" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} placeholder={t("screens.addressPlaceholder")} /></div>
+            <div className="space-y-2"><Label htmlFor="requestDescription">{t("ops.descriptionRequired")}</Label><Textarea id="requestDescription" required minLength={5} maxLength={2000} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder={t("screens.descriptionPlaceholder")} /></div>
+            <div className="space-y-2"><Label htmlFor="requestAddress">{t("screens.addressLabel")}</Label><Input id="requestAddress" maxLength={300} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} placeholder={t("screens.addressPlaceholder")} /></div>
             {vehicles.length > 0 && <div className="space-y-2"><Label>{t("screens.vehicleOptional")}</Label><Select value={form.vehicleId} onValueChange={(value) => setForm({ ...form, vehicleId: value })}><SelectTrigger aria-label={t("screens.vehicleOptional")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">{t("screens.noVehicle")}</SelectItem>{vehicles.map((vehicle) => <SelectItem key={vehicle.id} value={vehicle.id}>{[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")} · {vehicle.plate_number}</SelectItem>)}</SelectContent></Select></div>}
-            {form.urgency === "scheduled" && <div className="space-y-2"><Label htmlFor="scheduledAt">{t("screens.preferredTime")}</Label><Input id="scheduledAt" type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /></div>}
+            {form.urgency === "scheduled" && <div className="space-y-2"><Label htmlFor="scheduledAt">{t("screens.preferredTime")}</Label><Input id="scheduledAt" type="datetime-local" min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)} value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} /></div>}
             <div className="space-y-2"><div className="flex items-center justify-between gap-3"><Label>{t("screens.requestLocation")}</Label><Button type="button" variant="outline" size="sm" onClick={locate}><LocateFixed className="me-1.5 h-4 w-4" />{t("ops.locate")}</Button></div><div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Label htmlFor="requestLatitude" className="text-xs text-muted-foreground">{t("screens.latitude")}</Label><Input id="requestLatitude" type="number" step="any" required value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} /></div><div className="space-y-1"><Label htmlFor="requestLongitude" className="text-xs text-muted-foreground">{t("screens.longitude")}</Label><Input id="requestLongitude" type="number" step="any" required value={form.longitude} onChange={(event) => setForm({ ...form, longitude: event.target.value })} /></div></div></div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("ops.cancel")}</Button><Button type="submit" disabled={saving} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">{saving ? <LoaderCircle className="me-2 h-4 w-4 animate-spin" /> : <Plus className="me-2 h-4 w-4" />}{saving ? t("screens.sending") : t("ops.sendRequest")}</Button></DialogFooter>
           </form>
