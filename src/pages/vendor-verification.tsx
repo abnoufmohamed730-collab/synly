@@ -17,7 +17,7 @@ const userDocs = [
 export function VendorVerificationPage() {
   const { user } = useAuth();
   const verified = user?.verified ?? false;
-  const [hasSignupIntent] = useState(() => Boolean(sessionStorage.getItem("synly-verification-intent")));
+  const [hasSignupIntent] = useState(() => Boolean(localStorage.getItem("synly-verification-intent")));
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [busy, setBusy] = useState(false);
   const requiredDocs = user?.role === "vendor" ? vendorDocs : userDocs;
@@ -39,7 +39,7 @@ export function VendorVerificationPage() {
         if (rowError) throw new Error(rowError.message);
       }
       setFiles({});
-      sessionStorage.removeItem("synly-verification-intent");
+      localStorage.removeItem("synly-verification-intent");
       toast.success("Documents submitted for review.");
       await supabase.auth.refreshSession();
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth, Role } from "../context/auth-context";
+import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
 import { LanguageSwitcher } from "../components/language-switcher";
 import { Button } from "../components/ui/button";
@@ -70,7 +70,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
-  const [role, setRole] = useState<Role | null>(null);
+  const [role, setRole] = useState<"user" | "vendor" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -203,7 +203,7 @@ export function RegisterPage() {
         socialWhatsApp,
         socialInstagram,
       });
-      sessionStorage.setItem("synly-verification-intent", JSON.stringify(role === "vendor" ? ["commercial_register", "tax_id"] : ["car_license", "national_id"]));
+      localStorage.setItem("synly-verification-intent", JSON.stringify(role === "vendor" ? ["commercial_register", "tax_id"] : ["car_license", "national_id"]));
       setRequiresEmailConfirmation(result.requiresEmailConfirmation);
       setSuccess(true);
       setTimeout(() => {

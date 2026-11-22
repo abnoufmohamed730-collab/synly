@@ -1,6 +1,5 @@
 import { supabase } from "../integrations/supabase/client";
 import type { RegisterData, Role, User } from "../context/auth-types";
-import { normalizeE164 } from "../lib/phone";
 
 export interface ProfileSnapshot {
   profile: Record<string, any>;

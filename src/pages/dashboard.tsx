@@ -44,7 +44,7 @@ export function DashboardPage() {
     setRequests(nextRequests);
     setOffers(nextOffers);
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, user?.verified]);
 
   useEffect(() => {
     if (!user) return;
@@ -77,7 +77,7 @@ export function DashboardPage() {
     };
     void load();
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, user?.verified]);
 
   useEffect(() => {
     if (!centerId) return;

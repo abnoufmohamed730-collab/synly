@@ -60,7 +60,7 @@ export function RequestsPage() {
     setRequests(nextRequests);
     setOffers(await getVendorOffers(id));
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, user?.verified]);
 
   useEffect(() => {
     if (!user) return;
@@ -84,7 +84,7 @@ export function RequestsPage() {
     };
     void load();
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, user?.verified]);
 
   useEffect(() => {
     if (!centerId) return;

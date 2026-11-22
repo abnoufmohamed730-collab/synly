@@ -13,13 +13,17 @@ export function AuthCallbackPage() {
       return;
     }
 
+    let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) return;
-      const role = session.user.user_metadata?.role === "vendor" ? "vendor" : "user";
-      navigate(role === "vendor" ? "/dashboard" : "/user", { replace: true });
+      void supabase.from("profiles").select("role").eq("user_id", session.user.id).single().then(({ data }) => {
+        if (!active || !data) return;
+        const destination = data.role === "admin" ? "/admin/verification" : data.role === "vendor" ? "/dashboard" : "/user";
+        navigate(destination, { replace: true });
+      });
     });
 
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, [navigate]);
 
   return (

@@ -30,7 +30,7 @@ export interface User {
 }
 
 export interface RegisterData {
-  role: Role;
+  role: "user" | "vendor";
   username: string;
   email: string;
   password: string;

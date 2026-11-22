@@ -83,8 +83,8 @@ export function ForgotPasswordPage() {
     if (success) toast.success(t("recovery.resetSuccess"));
   };
 
-  const strength = password.length === 0 ? 0 : Math.min(4,
-    Number(password.length >= 8) + Number(/[A-Z]/.test(password)) + Number(/[a-z]/.test(password)) + Number(/[0-9]/.test(password)) + Number(/[^A-Za-z0-9]/.test(password))
+  const strength = password.length === 0 ? 0 : Number(password.length >= 8) + Math.min(3,
+    [/[A-Z]/.test(password), /[a-z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length
   );
   const maskedPhone = recovery.challenge?.phone.replace(/(\+\d{1,3})\d+(\d{2})$/, "$1••••••$2") ?? recovery.phone;
   const steps = [t("recovery.stepPhone"), t("recovery.stepOtp"), t("recovery.stepPassword")];
