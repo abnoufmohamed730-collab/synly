@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Home,
   ShoppingBag,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../context/auth-context";
 import { useLanguage } from "../context/language-context";
@@ -34,6 +35,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
         { to: "/dashboard", label: t("common.dashboard"), icon: LayoutDashboard, end: true },
         { to: "/dashboard/requests", label: t("common.requests"), icon: Inbox, end: false },
         { to: "/dashboard/catalog", label: t("common.catalog"), icon: Wrench, end: false },
+        { to: "/dashboard/verification", label: "Verification", icon: ShieldCheck, end: false },
         { to: "/dashboard/profile", label: t("common.profile"), icon: Settings, end: false },
       ]
     : [
@@ -41,6 +43,7 @@ export function Sidebar({ open, onClose, forceDrawer = false }: { open: boolean;
         { to: "/user/requests", label: t("sidebar.myRequests"), icon: ClipboardList, end: false },
         { to: "/user/shops", label: t("sidebar.nearbyCenters"), icon: MapPin, end: false },
         { to: "/user/catalog", label: "Services & parts", icon: ShoppingBag, end: false },
+        { to: "/user/verification", label: "Documents", icon: ShieldCheck, end: false },
         { to: "/user/profile", label: t("common.profile"), icon: Settings, end: false },
       ];
 

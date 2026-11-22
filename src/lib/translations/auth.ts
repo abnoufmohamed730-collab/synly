@@ -68,7 +68,7 @@ const auth: TranslationModule = {
     "recovery.errorOtp": "That code doesn’t match. Check it and try again.",
     "recovery.errorExpired": "This code has expired. Request a new verification code.",
     "recovery.errorMismatch": "The passwords do not match.",
-    "recovery.errorPassword": "Use at least 8 characters for your password.",
+    "recovery.errorPassword": "Use at least 8 characters and include 3 of: uppercase, lowercase, number, symbol.",
     "recovery.errorGeneric": "Something went wrong. Please try again.",
 
     // Register - shared
@@ -198,7 +198,7 @@ const auth: TranslationModule = {
     "register.errorRequired": "This field is required",
     "register.errorEmail": "Please enter a valid email",
     "register.errorPhone": "Please enter a valid phone number",
-    "register.errorPassword": "Password must be at least 6 characters",
+    "register.errorPassword": "Use at least 8 characters and include 3 of: uppercase, lowercase, number, symbol.",
     "register.errorRole": "Please choose an account type",
     "register.errorFile": "Please upload the required file",
 
@@ -303,7 +303,7 @@ const auth: TranslationModule = {
     "recovery.errorOtp": "الرمز غير صحيح. تحقق منه وحاول مرة أخرى.",
     "recovery.errorExpired": "انتهت صلاحية الرمز. اطلب رمز تحقق جديداً.",
     "recovery.errorMismatch": "كلمتا المرور غير متطابقتين.",
-    "recovery.errorPassword": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+    "recovery.errorPassword": "استخدم 8 أحرف على الأقل، و3 من: حرف كبير، حرف صغير، رقم، رمز.",
     "recovery.errorGeneric": "حدث خطأ. يرجى المحاولة مرة أخرى.",
 
     // Register - shared
@@ -433,7 +433,7 @@ const auth: TranslationModule = {
     "register.errorRequired": "هذا الحقل مطلوب",
     "register.errorEmail": "يرجى إدخال بريد إلكتروني صحيح",
     "register.errorPhone": "يرجى إدخال رقم هاتف صحيح",
-    "register.errorPassword": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+    "register.errorPassword": "استخدم 8 أحرف على الأقل، و3 من: حرف كبير، حرف صغير، رقم، رمز.",
     "register.errorRole": "يرجى اختيار نوع الحساب",
     "register.errorFile": "يرجى رفع الملف المطلوب",
 

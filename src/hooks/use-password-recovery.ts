@@ -5,6 +5,8 @@ import {
   type DeliveryChannel,
   type OtpChallenge,
 } from "../services/password-recovery-service";
+import { isPasswordPolicyValid } from "../lib/password-policy";
+import { normalizeE164 } from "../lib/phone";
 
 export type RecoveryStep = "phone" | "otp" | "password" | "complete";
 
@@ -26,8 +28,8 @@ export function usePasswordRecovery() {
   }, [step, remainingSeconds]);
 
   const requestCode = useCallback(async (nextChannel = channel) => {
-    const normalizedPhone = phone.replace(/[\s()-]/g, "");
-    if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+    const normalizedPhone = normalizeE164(phone);
+    if (!normalizedPhone) {
       setError("phone-invalid");
       return null;
     }
@@ -65,7 +67,7 @@ export function usePasswordRecovery() {
   }, [challenge, remainingSeconds]);
 
   const resetPassword = useCallback(async (password: string, confirmation: string) => {
-    if (password.length < 8) {
+    if (!isPasswordPolicyValid(password)) {
       setError("password-too-short");
       return false;
     }

@@ -84,7 +84,7 @@ export function ForgotPasswordPage() {
   };
 
   const strength = password.length === 0 ? 0 : Math.min(4,
-    Number(password.length >= 8) + Number(/[A-Z]/.test(password)) + Number(/[0-9]/.test(password)) + Number(/[^A-Za-z0-9]/.test(password))
+    Number(password.length >= 8) + Number(/[A-Z]/.test(password)) + Number(/[a-z]/.test(password)) + Number(/[0-9]/.test(password)) + Number(/[^A-Za-z0-9]/.test(password))
   );
   const maskedPhone = recovery.challenge?.phone.replace(/(\+\d{1,3})\d+(\d{2})$/, "$1••••••$2") ?? recovery.phone;
   const steps = [t("recovery.stepPhone"), t("recovery.stepOtp"), t("recovery.stepPassword")];

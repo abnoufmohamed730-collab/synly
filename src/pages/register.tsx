@@ -14,6 +14,8 @@ import { FileUpload } from "../components/FileUpload";
 import { LocationPicker } from "../components/LocationPicker";
 import { motion, AnimatePresence } from "framer-motion";
 import { stepVariants } from "../lib/register-constants";
+import { isPasswordPolicyValid } from "../lib/password-policy";
+import { normalizeE164 } from "../lib/phone";
 import {
   Car,
   Store,
@@ -120,8 +122,8 @@ export function RegisterPage() {
     if (step === 1) {
       if (!username.trim()) newErrors.username = t("register.errorRequired");
       if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = t("register.errorEmail");
-      if (password.length < 6) newErrors.password = t("register.errorPassword");
-      if (!phone.trim() || phone.replace(/\D/g, "").length < 8) newErrors.phone = t("register.errorPhone");
+      if (!isPasswordPolicyValid(password)) newErrors.password = t("register.errorPassword");
+      if (!normalizeE164(phone)) newErrors.phone = t("register.errorPhone");
     }
 
     if (step === 2) {
@@ -201,6 +203,7 @@ export function RegisterPage() {
         socialWhatsApp,
         socialInstagram,
       });
+      sessionStorage.setItem("synly-verification-intent", JSON.stringify(role === "vendor" ? ["commercial_register", "tax_id"] : ["car_license", "national_id"]));
       setRequiresEmailConfirmation(result.requiresEmailConfirmation);
       setSuccess(true);
       setTimeout(() => {

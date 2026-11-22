@@ -68,6 +68,7 @@ export function CatalogPage() {
   };
 
   const visibleItems = items.filter((item) => item.item_type === activeTab);
+  if (user && !user.verified) return <Card className="glass-card border-amber-500/20"><CardContent className="p-6"><h1 className="text-2xl font-bold text-amber-200">Pending Verification</h1><p className="mt-2 text-sm text-muted-foreground">Catalog editing and publishing unlock after your service center is approved.</p><Button className="mt-4" variant="outline" onClick={() => window.location.assign("/dashboard/verification")}>Upload documents</Button></CardContent></Card>;
   return <div className="space-y-6">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-3xl font-bold text-foreground">Catalog & Inventory</h1><p className="text-muted-foreground">Manage services and spare parts from your live catalog.</p></div><Button onClick={openAdd} disabled={!centerId} className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"><Plus className="me-2 h-4 w-4" />Add {activeTab === "service" ? "Service" : "Part"}</Button></div>
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "service" | "part")}><TabsList className="grid w-full grid-cols-2 sm:w-auto"><TabsTrigger value="service" className="gap-2"><Wrench className="h-4 w-4" />Services</TabsTrigger><TabsTrigger value="part" className="gap-2"><Package className="h-4 w-4" />Parts</TabsTrigger></TabsList><TabsContent value={activeTab} className="mt-6">

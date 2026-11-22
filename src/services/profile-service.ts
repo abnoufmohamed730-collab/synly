@@ -1,5 +1,6 @@
 import { supabase } from "../integrations/supabase/client";
 import type { RegisterData, Role, User } from "../context/auth-types";
+import { normalizeE164 } from "../lib/phone";
 
 export interface ProfileSnapshot {
   profile: Record<string, any>;
@@ -52,7 +53,7 @@ export function mapSnapshotToUser(snapshot: ProfileSnapshot, authUser: { id: str
   const center = snapshot.serviceCenter;
   const vehicle = snapshot.vehicles[0];
   const contact = snapshot.emergencyContacts[0];
-  const role: Role = profile.role === "vendor" ? "vendor" : "user";
+  const role: Role = profile.role === "admin" ? "admin" : profile.role === "vendor" ? "vendor" : "user";
   return {
     id: authUser.id,
     email: authUser.email ?? "",

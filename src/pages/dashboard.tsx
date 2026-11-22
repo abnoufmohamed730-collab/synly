@@ -34,6 +34,12 @@ export function DashboardPage() {
       setCenterId(center.id);
       setStatus(center.is_online ? "online" : "offline");
     }
+    if (!user.verified) {
+      setRequests([]);
+      setOffers([]);
+      setLoading(false);
+      return;
+    }
     const [nextRequests, nextOffers] = await Promise.all([getVendorRequests(), getVendorOffers(id)]);
     setRequests(nextRequests);
     setOffers(nextOffers);
@@ -53,6 +59,11 @@ export function DashboardPage() {
         }
         setCenterId(center.id);
         setStatus(center.is_online ? "online" : "offline");
+        if (!user.verified) {
+          setRequests([]);
+          setOffers([]);
+          return;
+        }
         const [nextRequests, nextOffers] = await Promise.all([getVendorRequests(), getVendorOffers(center.id)]);
         if (active) {
           setRequests(nextRequests);
@@ -83,6 +94,10 @@ export function DashboardPage() {
 
   const handleStatusChange = async (checked: boolean) => {
     if (!user) return;
+    if (checked && !user.verified) {
+      toast.error("Your center must be approved before going online.");
+      return;
+    }
     const nextStatus = checked ? "online" : "offline";
     try {
       await updateUser({ status: nextStatus });
@@ -103,11 +118,12 @@ export function DashboardPage() {
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
           {status === "online" ? <Wifi className="h-4 w-4 text-green-400" /> : <WifiOff className="h-4 w-4 text-slate-400" />}
           <Label htmlFor="center-online" className="text-sm font-medium text-foreground">{status === "online" ? "Online" : "Offline"}</Label>
-          <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} aria-label="Toggle online status" />
+          <Switch id="center-online" checked={status === "online"} onCheckedChange={handleStatusChange} disabled={!user?.verified} aria-label="Toggle online status" />
         </div>
       </div>
 
       {!centerId && !loading && <Card className="glass-card border-amber-500/20"><CardContent className="p-4 text-sm text-amber-200">No service center is linked to this vendor profile yet.</CardContent></Card>}
+      {user && !user.verified && <Card className="glass-card border-amber-500/20"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-amber-200">Pending Verification</p><p className="text-sm text-muted-foreground">Submit your business documents. Requests, offers, catalog publishing, and online availability unlock after approval.</p></div><Button variant="outline" onClick={() => navigate("/dashboard/verification")}>Upload documents</Button></CardContent></Card>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="Active Requests" value={loading ? "—" : activeRequests.length} caption="Assigned or awaiting offers" icon={<Users className="h-5 w-5 text-orange-400" />} />

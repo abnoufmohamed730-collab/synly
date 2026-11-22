@@ -53,7 +53,7 @@ export function ProtectedRoute({ allowedRoles, requiredMode }: ProtectedRoutePro
   // 3. Role-based access control: enforce role boundaries (e.g., non-vendor accessing vendor dashboard)
   if (allowedRoles && !allowedRoles.includes(role)) {
     toast.error(t("auth.roleAccessDenied"));
-    const fallbackPath = role === "vendor" ? "/dashboard" : "/user";
+    const fallbackPath = role === "admin" ? "/admin/verification" : role === "vendor" ? "/dashboard" : "/user";
     return <Navigate to={fallbackPath} replace />;
   }
 

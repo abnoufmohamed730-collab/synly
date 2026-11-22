@@ -1,5 +1,5 @@
 export type AppMode = "user" | "vendor";
-export type Role = "user" | "vendor";
+export type Role = "user" | "vendor" | "admin";
 
 export interface User {
   id: string;

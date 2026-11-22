@@ -40,7 +40,7 @@ export function LoginPage() {
       const signedInUser = await login(email, password);
       toast.success(t("auth.sessionActive"));
 
-      const defaultTarget = signedInUser.role === "vendor" ? "/dashboard" : "/user";
+      const defaultTarget = signedInUser.role === "admin" ? "/admin/verification" : signedInUser.role === "vendor" ? "/dashboard" : "/user";
       const destination = location.state?.from?.pathname || defaultTarget;
 
       navigate(destination, { replace: true });
@@ -121,7 +121,7 @@ export function LoginPage() {
               </div>
               <div className="flex flex-col gap-2.5 pt-2">
                 <Button
-                  onClick={() => navigate(role === "vendor" ? "/dashboard" : "/user")}
+                  onClick={() => navigate(role === "admin" ? "/admin/verification" : role === "vendor" ? "/dashboard" : "/user")}
                   className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold"
                 >
                   {t("login.signIn")}

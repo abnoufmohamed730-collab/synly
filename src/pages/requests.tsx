@@ -97,6 +97,8 @@ export function RequestsPage() {
   const filteredRequests = useMemo(() => requests.filter((request) => selectedStatus === "all" || request.status === selectedStatus), [requests, selectedStatus]);
   const ownOfferByRequest = useMemo(() => new Map(offers.map((offer) => [offer.request_id, offer])), [offers]);
 
+  if (user && !user.verified) return <Card className="glass-card border-amber-500/20"><CardContent className="p-6"><h1 className="text-2xl font-bold text-amber-200">Pending Verification</h1><p className="mt-2 text-sm text-muted-foreground">Customer requests and offer actions unlock after your center is approved.</p><Button className="mt-4" variant="outline" onClick={() => window.location.assign("/dashboard/verification")}>Upload documents</Button></CardContent></Card>;
+
   const handleSendOffer = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedRequest) return;

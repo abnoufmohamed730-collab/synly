@@ -1,5 +1,7 @@
 import type { RegisterFormData } from "../types/register";
 import type { Role } from "../context/auth-context";
+import { isPasswordPolicyValid } from "./password-policy";
+import { normalizeE164 } from "./phone";
 
 export function validateRegisterStep(
   step: number,
@@ -19,9 +21,8 @@ export function validateRegisterStep(
     if (!data.username.trim()) errors.username = t("register.errorRequired");
     if (!data.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
       errors.email = t("register.errorEmail");
-    if (data.password.length < 6) errors.password = t("register.errorPassword");
-    if (!data.phone.trim() || data.phone.replace(/\D/g, "").length < 8)
-      errors.phone = t("register.errorPhone");
+    if (!isPasswordPolicyValid(data.password)) errors.password = t("register.errorPassword");
+    if (!normalizeE164(data.phone)) errors.phone = t("register.errorPhone");
   }
 
   if (step === 2) {

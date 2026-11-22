@@ -3,6 +3,7 @@ import type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-
 import { supabase } from "../integrations/supabase/client";
 import { readStoredMode, writeStoredMode } from "./auth-session";
 import { buildSignupMetadata, fetchProfileSnapshot, mapSnapshotToUser } from "../services/profile-service";
+import { normalizeE164 } from "../lib/phone";
 
 export type { AppMode, AuthContextType, RegisterData, Role, User } from "./auth-types";
 
@@ -65,6 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hydrateUser]);
 
   const register = useCallback(async (data: RegisterData) => {
+    const phone = normalizeE164(data.phone);
+    const emergencyPhone = data.emergencyContactPhone ? normalizeE164(data.emergencyContactPhone) : null;
+    const centerPhone = data.phoneNumbers ? normalizeE164(String(data.phoneNumbers).split(/[;,]/)[0]) : phone;
+    const emergencyLine = data.emergencyLine ? normalizeE164(data.emergencyLine) : null;
+    if (!phone || (data.role === "user" && !emergencyPhone) || (data.role === "vendor" && (!centerPhone || !emergencyLine))) {
+      throw new Error("Enter valid phone numbers, including the country code when needed.");
+    }
+    data = { ...data, phone, emergencyContactPhone: emergencyPhone ?? undefined, phoneNumbers: centerPhone ?? undefined, emergencyLine: emergencyLine ?? undefined };
     setIsLoading(true);
     const callbackUrl = new URL("/auth/callback", window.location.origin).href;
     const { data: result, error } = await supabase.auth.signUp({
@@ -112,7 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const profileUpdate: Record<string, string> = {};
     if (data.username !== undefined) profileUpdate.display_name = data.username;
     else if (data.businessName !== undefined && user.role === "user") profileUpdate.display_name = data.businessName;
-    if (data.phone !== undefined) profileUpdate.phone_e164 = data.phone;
+    if (data.phone !== undefined) {
+      const phone = normalizeE164(data.phone);
+      if (!phone) throw new Error("Enter a valid phone number.");
+      profileUpdate.phone_e164 = phone;
+    }
 
     const requests: PromiseLike<{ error: { message: string } | null }>[] = [];
     if (Object.keys(profileUpdate).length) {
@@ -125,8 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.description !== undefined) centerUpdate.description = data.description;
       if (data.location !== undefined) centerUpdate.address = data.location;
       if (data.status !== undefined) centerUpdate.is_online = data.status === "online";
-      if (data.phoneNumbers !== undefined) centerUpdate.phone_e164 = String(data.phoneNumbers).split(/[;,]/)[0]?.trim() || null;
-      if (data.emergencyLine !== undefined) centerUpdate.emergency_phone_e164 = data.emergencyLine;
+      if (data.phoneNumbers !== undefined) {
+        const phone = normalizeE164(String(data.phoneNumbers).split(/[;,]/)[0] ?? "");
+        if (!phone) throw new Error("Enter a valid service center phone number.");
+        centerUpdate.phone_e164 = phone;
+      }
+      if (data.emergencyLine !== undefined) {
+        const phone = normalizeE164(data.emergencyLine);
+        if (!phone) throw new Error("Enter a valid emergency phone number.");
+        centerUpdate.emergency_phone_e164 = phone;
+      }
       if (Object.keys(centerUpdate).length) {
         requests.push(supabase.from("service_centers").update(centerUpdate).eq("owner_id", user.id));
       }

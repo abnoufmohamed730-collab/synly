@@ -20,6 +20,8 @@ import { UserCatalogPage } from "./pages/user-catalog";
 import { ShopsPage } from "./pages/shops";
 import { PageTransition } from "./components/PageTransition";
 import { DevTestAccountsPage } from "./pages/dev-test-accounts";
+import { VendorVerificationPage } from "./pages/vendor-verification";
+import { AdminVerificationReviewPage } from "./pages/admin-verification-review";
 
 export default function App() {
   return (
@@ -46,22 +48,27 @@ export default function App() {
                       <Route path="shops" element={<ShopsPage />} />
                       <Route path="catalog" element={<UserCatalogPage />} />
                       <Route path="profile" element={<ProfilePage />} />
+                      <Route path="verification" element={<VendorVerificationPage />} />
                     </Route>
                   </Route>
                 </Route>
               </Route>
 
-              {/* Protected Vendor Experience: strictly restricted to verified service centers / vendors */}
+              {/* Protected Vendor Experience: strictly restricted to vendors; database policies gate unverified access */}
               <Route element={<ProtectedRoute allowedRoles={["vendor"]} requiredMode="vendor" />}>
                 <Route element={<PageTransition />}>
-                  <Route path="/dashboard">
+                  <Route path="/dashboard" element={<DashboardLayout />}>
                     <Route index element={<DashboardPage />} />
-                    <Route element={<DashboardLayout />}>
-                      <Route path="requests" element={<RequestsPage />} />
-                      <Route path="catalog" element={<CatalogPage />} />
-                      <Route path="profile" element={<ProfilePage />} />
-                    </Route>
+                    <Route path="requests" element={<RequestsPage />} />
+                    <Route path="catalog" element={<CatalogPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="verification" element={<VendorVerificationPage />} />
                   </Route>
+                </Route>
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+                <Route element={<PageTransition />}>
+                  <Route path="/admin/verification" element={<AdminVerificationReviewPage />} />
                 </Route>
               </Route>
 
